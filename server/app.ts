@@ -171,7 +171,14 @@ export function createApp({ config, db, payments, mailer }: AppDeps) {
   /** Pulls the latest status from the payment provider and updates the order. */
   async function syncPayment(order: Order): Promise<Order> {
     if (!payments || !order.payment_id || order.status !== 'open') return order;
-    const payment = await payments.get(order.payment_id);
+    let payment;
+    try {
+      payment = await payments.get(order.payment_id);
+    } catch (err) {
+      // Show the last known status rather than failing the order page; the webhook will catch up.
+      console.error(err);
+      return order;
+    }
     if (applyPaymentStatus(db, order.id, payment.status, payment.method)) {
       const paid = getOrderById(db, order.id)!;
       await onPaid(paid);
@@ -237,6 +244,18 @@ export function createApp({ config, db, payments, mailer }: AppDeps) {
       const order = getOrderByPublicId(db, String(req.params.publicId));
       if (!order) throw new HttpError(404, 'Bestelling niet gevonden');
       if (order.status !== 'open' && order.status !== 'failed') throw new HttpError(409, 'Deze bestelling is al betaald');
+      // Reuse a payment that is still open, so a customer cannot accidentally pay twice.
+      if (payments && order.payment_id) {
+        const current = await payments.get(order.payment_id);
+        if (current.status === 'paid') {
+          if (applyPaymentStatus(db, order.id, 'paid', current.method)) await onPaid(getOrderById(db, order.id)!);
+          throw new HttpError(409, 'Deze bestelling is al betaald');
+        }
+        if (current.status === 'open' && current.checkoutUrl) {
+          res.json({ checkoutUrl: current.checkoutUrl });
+          return;
+        }
+      }
       db.prepare(`UPDATE orders SET status = 'open' WHERE id = ?`).run(order.id);
       res.json({ checkoutUrl: await startPayment(order) });
     }),

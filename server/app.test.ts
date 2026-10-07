@@ -123,6 +123,35 @@ describe('checkout', () => {
     expect((await request(ctx.app).post(`/api/orders/${body.orderId}/pay`)).status).toBe(409);
   });
 
+  it('reuses a payment that is still open instead of creating a second one', async () => {
+    const { body } = await placeOrder();
+    const retry = await request(ctx.app).post(`/api/orders/${body.orderId}/pay`);
+    expect(retry.body.checkoutUrl).toBe(body.checkoutUrl);
+    expect(ctx.payments.payments.size).toBe(1);
+  });
+
+  it('still marks an order paid when the payment arrives after it was cancelled', async () => {
+    const { body } = await placeOrder();
+    const auth = { Authorization: 'Bearer geheim' };
+    const [order] = (await request(ctx.app).get('/api/admin/orders').set(auth)).body;
+    await request(ctx.app).post(`/api/admin/orders/${order.id}/cancel`).set(auth).expect(200);
+
+    const paymentId = body.checkoutUrl.split('/').pop();
+    ctx.payments.settle(paymentId, 'paid');
+    await request(ctx.app).post('/api/webhooks/mollie').type('form').send({ id: paymentId }).expect(200);
+    expect((await request(ctx.app).get(`/api/orders/${body.orderId}`)).body.status).toBe('paid');
+  });
+
+  it('shows the last known status when the payment provider is unreachable', async () => {
+    const { body } = await placeOrder();
+    ctx.payments.get = async () => {
+      throw new Error('network down');
+    };
+    const res = await request(ctx.app).get(`/api/orders/${body.orderId}`);
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('open');
+  });
+
   it('runs the mock checkout page end to end', async () => {
     const { body } = await placeOrder();
     const path = new URL(body.checkoutUrl).pathname;

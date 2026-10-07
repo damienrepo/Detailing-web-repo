@@ -119,13 +119,15 @@ export function setPaymentId(db: Db, orderId: number, paymentId: string) {
 /**
  * Applies a payment status to an order. Returns true when the order became
  * paid by this call, so callers send the confirmation mail exactly once.
+ * A payment that arrives after an admin cancelled the order still marks it
+ * paid: the money was received, so the order must show up for handling.
  */
 export function applyPaymentStatus(db: Db, orderId: number, status: PaymentStatus, method?: string): boolean {
   if (status === 'paid') {
     const result = db
       .prepare(
         `UPDATE orders SET status = 'paid', paid_at = datetime('now'), payment_method = ?
-         WHERE id = ? AND status IN ('open', 'failed')`,
+         WHERE id = ? AND status IN ('open', 'failed', 'cancelled')`,
       )
       .run(method ?? null, orderId);
     return result.changes === 1;
