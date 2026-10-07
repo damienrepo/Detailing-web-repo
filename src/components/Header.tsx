@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from 'motion/react';
 import { Menu, ShoppingBag, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
@@ -39,7 +38,10 @@ export function Header() {
         solid ? 'border-b border-white/10 bg-ink/95 backdrop-blur-sm' : 'border-b border-transparent bg-transparent'
       }`}
     >
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:bg-paper focus:px-4 focus:py-2 focus:text-ink">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:bg-paper focus:px-4 focus:py-2 focus:text-ink"
+      >
         Naar inhoud
       </a>
       <div className="container-page flex h-16 items-center justify-between md:h-[72px]">
@@ -50,7 +52,9 @@ export function Header() {
             <NavLink
               key={item.to}
               to={item.to}
-              className={({ isActive }) => `transition-colors hover:text-paper ${isActive && !item.to.includes('#') ? 'text-paper' : ''}`}
+              className={({ isActive }) =>
+                `transition-colors hover:text-paper ${isActive && !item.to.includes('#') ? 'text-paper' : ''}`
+              }
             >
               {item.label}
             </NavLink>
@@ -87,30 +91,30 @@ export function Header() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.nav
-            id="mobile-menu"
-            aria-label="Mobiel menu"
-            initial={{ height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: 0 }}
-            transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
-            className="overflow-hidden border-t border-white/10 bg-ink md:hidden"
-          >
-            <div className="container-page flex flex-col py-4">
-              {NAV.map((item) => (
-                <Link key={item.to} to={item.to} onClick={() => setMenuOpen(false)} className="border-b border-white/10 py-4 text-lg">
-                  {item.label}
-                </Link>
-              ))}
-              <ButtonLink to="/afspraak" variant="accent" arrow className="mt-6 w-full">
-                Afspraak aanvragen
-              </ButtonLink>
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
+      <nav
+        id="mobile-menu"
+        aria-label="Mobiel menu"
+        inert={!menuOpen}
+        className={`grid bg-ink transition-[grid-template-rows] duration-300 ease-out-quart md:hidden ${menuOpen ? 'grid-rows-[1fr] border-t border-white/10' : 'grid-rows-[0fr]'}`}
+      >
+        <div className="overflow-hidden">
+          <div className="container-page flex flex-col py-4">
+            {NAV.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                onClick={() => setMenuOpen(false)}
+                className="border-b border-white/10 py-4 text-lg"
+              >
+                {item.label}
+              </Link>
+            ))}
+            <ButtonLink to="/afspraak" variant="accent" arrow className="mt-6 w-full">
+              Afspraak aanvragen
+            </ButtonLink>
+          </div>
+        </div>
+      </nav>
     </header>
   );
 }

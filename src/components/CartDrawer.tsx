@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from 'motion/react';
 import { X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -50,132 +49,130 @@ export function CartDrawer() {
   }, [isOpen, close]);
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50">
-          <motion.div
-            className="absolute inset-0 bg-ink/60"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={close}
-          />
-          <motion.div
-            ref={panelRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Winkelwagen"
-            tabIndex={-1}
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
-            className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-paper text-ink shadow-2xl outline-none"
-          >
-            <div className="flex h-16 items-center justify-between border-b border-ink/10 px-5 md:h-[72px]">
-              <h2 className="font-display text-xl">
-                Winkelwagen <span className="tabular text-stone-dark">({cart.count})</span>
-              </h2>
-              <button type="button" onClick={close} className="grid h-10 w-10 place-items-center hover:bg-ink/5" aria-label="Sluiten">
-                <X className="h-5 w-5" />
-              </button>
+    // Stays mounted so it can slide out; `inert` hides it from keyboard and screen readers when closed.
+    <div className={`fixed inset-0 z-50 ${isOpen ? '' : 'pointer-events-none'}`} inert={!isOpen}>
+      <div
+        className={`absolute inset-0 bg-ink/60 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}
+        onClick={close}
+      />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Winkelwagen"
+        tabIndex={-1}
+        className={`absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-paper text-ink shadow-2xl outline-none transition-transform duration-[350ms] ease-out-quart ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+      >
+        <div className="flex h-16 items-center justify-between border-b border-ink/10 px-5 md:h-[72px]">
+          <h2 className="font-display text-xl">
+            Winkelwagen <span className="tabular text-stone-dark">({cart.count})</span>
+          </h2>
+          <button type="button" onClick={close} className="grid h-10 w-10 place-items-center hover:bg-ink/5" aria-label="Sluiten">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {totals.lines.length === 0 ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-6 px-8 text-center">
+            <p className="text-stone-dark">Je winkelwagen is leeg.</p>
+            <ButtonLink to="/shop" variant="dark" arrow onClick={close}>
+              Naar de shop
+            </ButtonLink>
+          </div>
+        ) : (
+          <>
+            <div className="border-b border-ink/10 px-5 py-4">
+              <FreeShippingMeter remaining={totals.freeShippingRemaining} threshold={SHIPPING[cart.country].freeFrom} />
             </div>
 
-            {totals.lines.length === 0 ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-6 px-8 text-center">
-                <p className="text-stone-dark">Je winkelwagen is leeg.</p>
-                <ButtonLink to="/shop" variant="dark" arrow onClick={close}>
-                  Naar de shop
-                </ButtonLink>
-              </div>
-            ) : (
-              <>
-                <div className="border-b border-ink/10 px-5 py-4">
-                  <FreeShippingMeter remaining={totals.freeShippingRemaining} threshold={SHIPPING[cart.country].freeFrom} />
-                </div>
-
-                <ul className="flex-1 divide-y divide-ink/10 overflow-y-auto px-5">
-                  {totals.lines.map(({ product, quantity, lineTotal }) => (
-                    <li key={product.id} className="flex gap-4 py-5">
-                      <Link to={`/shop/${product.slug}`} onClick={close} className="w-20 shrink-0">
-                        <ProductImage productId={product.id} />
-                      </Link>
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <div className="flex justify-between gap-3">
-                          <div>
-                            <Link to={`/shop/${product.slug}`} onClick={close} className="font-medium hover:underline">
-                              {product.name}
-                            </Link>
-                            <p className="text-sm text-stone-dark">{product.size}</p>
-                          </div>
-                          <p className="tabular text-right font-medium">{formatPrice(lineTotal)}</p>
-                        </div>
-                        <div className="mt-auto flex items-center justify-between pt-3">
-                          <QuantityStepper
-                            size="sm"
-                            label={`Aantal ${product.name}`}
-                            value={quantity}
-                            onChange={(q) => cart.setQuantity(product.id, q)}
-                          />
-                          <button type="button" onClick={() => cart.remove(product.id)} className="text-sm text-stone-dark underline-offset-4 hover:underline">
-                            Verwijderen
-                          </button>
-                        </div>
+            <ul className="flex-1 divide-y divide-ink/10 overflow-y-auto px-5">
+              {totals.lines.map(({ product, quantity, lineTotal }) => (
+                <li key={product.id} className="flex gap-4 py-5">
+                  <Link to={`/shop/${product.slug}`} onClick={close} className="w-20 shrink-0">
+                    <ProductImage productId={product.id} />
+                  </Link>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex justify-between gap-3">
+                      <div>
+                        <Link to={`/shop/${product.slug}`} onClick={close} className="font-medium hover:underline">
+                          {product.name}
+                        </Link>
+                        <p className="text-sm text-stone-dark">{product.size}</p>
                       </div>
-                    </li>
-                  ))}
-                </ul>
-
-                {cart.bundleSwapAvailable && (
-                  <div className="mx-5 mb-4 flex items-center justify-between gap-4 border border-accent/40 bg-white px-4 py-3">
-                    <p className="text-sm">
-                      Je hebt alle losse onderdelen van de <strong>{bundle.name}</strong>. Bespaar{' '}
-                      {formatPrice(bundle.compareAtPrice! - bundle.price)} met de set.
-                    </p>
-                    <button type="button" onClick={cart.swapForBundle} className="shrink-0 text-sm font-semibold text-accent-strong underline underline-offset-4">
-                      Omwisselen
-                    </button>
+                      <p className="tabular text-right font-medium">{formatPrice(lineTotal)}</p>
+                    </div>
+                    <div className="mt-auto flex items-center justify-between pt-3">
+                      <QuantityStepper
+                        size="sm"
+                        label={`Aantal ${product.name}`}
+                        value={quantity}
+                        onChange={(q) => cart.setQuantity(product.id, q)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => cart.remove(product.id)}
+                        className="text-sm text-stone-dark underline-offset-4 hover:underline"
+                      >
+                        Verwijderen
+                      </button>
+                    </div>
                   </div>
-                )}
+                </li>
+              ))}
+            </ul>
 
-                {!cart.items.some((i) => i.productId === BUNDLE_ID) && !cart.bundleSwapAvailable && (
-                  <UpsellBundle onNavigate={close} />
-                )}
-
-                <div className="border-t border-ink/10 bg-paper-2/60 px-5 pb-5 pt-4">
-                  <dl className="tabular space-y-1.5 text-sm">
-                    <div className="flex justify-between">
-                      <dt>Subtotaal</dt>
-                      <dd>{formatPrice(totals.subtotal)}</dd>
-                    </div>
-                    <div className="flex justify-between text-stone-dark">
-                      <dt>Verzending ({SHIPPING[cart.country].label})</dt>
-                      <dd>{totals.shipping === 0 ? 'Gratis' : formatPrice(totals.shipping)}</dd>
-                    </div>
-                    <div className="flex justify-between pt-2 text-base font-semibold">
-                      <dt>Totaal</dt>
-                      <dd>{formatPrice(totals.total)}</dd>
-                    </div>
-                  </dl>
-                  <p className="mt-1 text-xs text-stone-dark">Inclusief {formatPrice(totals.vat)} btw</p>
-                  <Button
-                    variant="accent"
-                    arrow
-                    className="mt-4 w-full"
-                    onClick={() => {
-                      close();
-                      navigate('/afrekenen');
-                    }}
-                  >
-                    Afrekenen
-                  </Button>
-                </div>
-              </>
+            {cart.bundleSwapAvailable && (
+              <div className="mx-5 mb-4 flex items-center justify-between gap-4 border border-accent/40 bg-white px-4 py-3">
+                <p className="text-sm">
+                  Je hebt alle losse onderdelen van de <strong>{bundle.name}</strong>. Bespaar{' '}
+                  {formatPrice(bundle.compareAtPrice! - bundle.price)} met de set.
+                </p>
+                <button
+                  type="button"
+                  onClick={cart.swapForBundle}
+                  className="shrink-0 text-sm font-semibold text-accent-strong underline underline-offset-4"
+                >
+                  Omwisselen
+                </button>
+              </div>
             )}
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+
+            {!cart.items.some((i) => i.productId === BUNDLE_ID) && !cart.bundleSwapAvailable && (
+              <UpsellBundle onNavigate={close} />
+            )}
+
+            <div className="border-t border-ink/10 bg-paper-2/60 px-5 pb-5 pt-4">
+              <dl className="tabular space-y-1.5 text-sm">
+                <div className="flex justify-between">
+                  <dt>Subtotaal</dt>
+                  <dd>{formatPrice(totals.subtotal)}</dd>
+                </div>
+                <div className="flex justify-between text-stone-dark">
+                  <dt>Verzending ({SHIPPING[cart.country].label})</dt>
+                  <dd>{totals.shipping === 0 ? 'Gratis' : formatPrice(totals.shipping)}</dd>
+                </div>
+                <div className="flex justify-between pt-2 text-base font-semibold">
+                  <dt>Totaal</dt>
+                  <dd>{formatPrice(totals.total)}</dd>
+                </div>
+              </dl>
+              <p className="mt-1 text-xs text-stone-dark">Inclusief {formatPrice(totals.vat)} btw</p>
+              <Button
+                variant="accent"
+                arrow
+                className="mt-4 w-full"
+                onClick={() => {
+                  close();
+                  navigate('/afrekenen');
+                }}
+              >
+                Afrekenen
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -193,7 +190,11 @@ function UpsellBundle({ onNavigate }: { onNavigate: () => void }) {
           {formatPrice(bundle.price)} · {bundle.badge}
         </p>
       </div>
-      <button type="button" onClick={() => add(bundle.id)} className="h-9 shrink-0 border border-ink/20 px-3 text-sm font-medium hover:border-ink">
+      <button
+        type="button"
+        onClick={() => add(bundle.id)}
+        className="h-9 shrink-0 border border-ink/20 px-3 text-sm font-medium hover:border-ink"
+      >
         Toevoegen
       </button>
     </div>
