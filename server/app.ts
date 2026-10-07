@@ -38,12 +38,19 @@ export type AppDeps = {
 
 const postalCodes = { NL: /^[1-9]\d{3}\s?[A-Za-z]{2}$/, BE: /^[1-9]\d{3}$/ } as const;
 
-const trimmed = (max: number) => z.string().trim().min(1).max(max);
+const REQUIRED = 'Vul dit veld in';
+const trimmed = (max: number) =>
+  z
+    .string({ error: REQUIRED })
+    .trim()
+    .min(1, REQUIRED)
+    .max(max, `Maximaal ${max} tekens`);
+const email = z.email({ error: 'Vul een geldig e-mailadres in' }).max(200);
 const optionalText = (max: number) =>
   z
     .string()
     .trim()
-    .max(max)
+    .max(max, `Maximaal ${max} tekens`)
     .optional()
     .transform((v) => v || undefined);
 
@@ -54,33 +61,33 @@ const checkoutSchema = z
       .min(1)
       .max(10),
     customer: z.object({
-      email: z.email().max(200),
+      email,
       name: trimmed(100),
       phone: optionalText(30),
       street: trimmed(100),
       houseNumber: trimmed(15),
-      postalCode: trimmed(10),
+      postalCode: trimmed(10).regex(/^\d{4}\s?[A-Za-z]{0,2}$/, 'Vul een geldige postcode in'),
       city: trimmed(80),
       country: z.enum(COUNTRIES as ['NL', 'BE']),
       notes: optionalText(500),
     }),
-    acceptTerms: z.literal(true),
+    acceptTerms: z.literal(true, { error: 'Ga akkoord met de algemene voorwaarden' }),
   })
   .refine((v) => postalCodes[v.customer.country].test(v.customer.postalCode), {
     path: ['customer', 'postalCode'],
-    message: 'Ongeldige postcode',
+    message: 'Deze postcode past niet bij het gekozen land',
   });
 
 const bookingSchema = z.object({
-  serviceId: z.enum(SERVICES.map((s) => s.id) as [string, ...string[]]),
+  serviceId: z.enum(SERVICES.map((s) => s.id) as [string, ...string[]], { error: 'Kies een behandeling' }),
   vehicle: trimmed(100),
   preferredDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Kies een geldige datum')
     .optional()
     .or(z.literal('').transform(() => undefined)),
   name: trimmed(100),
-  email: z.email().max(200),
+  email,
   phone: trimmed(30),
   postalCode: optionalText(10),
   message: optionalText(1000),
