@@ -30,6 +30,7 @@ function ProductDetail({ product }: { product: Product }) {
     name: product.name,
     description: product.description.join(' '),
     sku: product.sku,
+    ...(product.image ? { image: location.origin + product.image } : {}),
     brand: { '@type': 'Brand', name: SITE.fullName },
     offers: {
       '@type': 'Offer',

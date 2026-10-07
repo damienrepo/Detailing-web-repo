@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import type { ProductId } from '../../shared/catalog';
+import { getProduct, type ProductId } from '../../shared/catalog';
 
 // Vector packshots used until real product photography is available.
 // To switch to photos, render an <img> in ProductImage instead of these.
@@ -187,6 +187,14 @@ export function ProductArt({ productId, className = '' }: { productId: ProductId
 }
 
 export function ProductImage({ productId, className = '' }: { productId: ProductId; className?: string }) {
+  const product = getProduct(productId);
+  if (product?.image) {
+    return (
+      <div className={`relative aspect-square overflow-hidden bg-paper-2 ${className}`}>
+        <img src={product.image} alt={product.name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+      </div>
+    );
+  }
   return (
     <div
       className={`relative aspect-square overflow-hidden bg-[radial-gradient(ellipse_at_50%_30%,#f8f7f3_0%,#e7e3db_55%,#d6d1c7_100%)] ${className}`}

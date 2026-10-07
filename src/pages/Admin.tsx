@@ -43,6 +43,17 @@ function date(value: string) {
   return new Date(value.replace(' ', 'T') + 'Z').toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+async function exportCsv(token: string) {
+  const res = await fetch('/api/admin/orders.csv', { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Exporteren mislukt');
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bestellingen-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function readToken() {
   try {
     return sessionStorage.getItem(TOKEN_KEY) ?? '';
@@ -103,6 +114,9 @@ export default function Admin() {
             <span className="eyebrow text-paper/50">Beheer</span>
           </div>
           <div className="flex items-center gap-2">
+            <button type="button" onClick={() => exportCsv(token).catch((e) => setError(e.message))} className="h-10 px-3 text-sm hover:bg-white/10">
+              Exporteer CSV
+            </button>
             <button type="button" onClick={load} className="grid h-10 w-10 place-items-center hover:bg-white/10" aria-label="Vernieuwen">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </button>

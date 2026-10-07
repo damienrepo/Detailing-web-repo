@@ -307,6 +307,29 @@ export function createApp({ config, db, payments, mailer }: AppDeps) {
     res.json(listOrders(db));
   });
 
+  // Semicolon-separated with comma decimals and a BOM, so Dutch Excel opens it directly.
+  admin.get('/orders.csv', (_req, res) => {
+    const money = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
+    const cell = (v: string | number | null) => {
+      const s = String(v ?? '');
+      return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const header = [
+      'Bestelnummer', 'Besteld op', 'Status', 'Betaald op', 'Naam', 'E-mail', 'Telefoon', 'Adres', 'Postcode', 'Plaats',
+      'Land', 'Producten', 'Subtotaal', 'Verzending', 'Btw', 'Totaal', 'Betaalmethode', 'Track & trace',
+    ];
+    const rows = listOrders(db, 10_000).map((o) => [
+      o.number, o.created_at, o.status, o.paid_at, o.name, o.email, o.phone, `${o.street} ${o.house_number}`, o.postal_code,
+      o.city, o.country, o.items.map((i) => `${i.quantity}x ${i.name}`).join(', '), money(o.subtotal), money(o.shipping),
+      money(o.vat), money(o.total), o.payment_method, o.tracking_code,
+    ]);
+    const csv = [header, ...rows].map((r) => r.map(cell).join(';')).join('\r\n');
+    res
+      .type('text/csv; charset=utf-8')
+      .set('Content-Disposition', `attachment; filename="bestellingen-${new Date().toISOString().slice(0, 10)}.csv"`)
+      .send('﻿' + csv);
+  });
+
   admin.post(
     '/orders/:id/ship',
     asyncRoute(async (req, res) => {

@@ -23,6 +23,11 @@ export type Product = {
   /** For bundles: which products are in the box. */
   includes?: { productId: ProductId; quantity: number }[];
   badge?: string;
+  /**
+   * Product photo, e.g. '/products/interior-cleaner.jpg' (put the file in public/products/).
+   * Square images on a light background work best. Without a photo an illustration is shown.
+   */
+  image?: string;
   /** Set to false to show the product as sold out. */
   inStock: boolean;
 };

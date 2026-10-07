@@ -193,6 +193,19 @@ describe('admin', () => {
     await request(app).get('/api/admin/orders').set('Authorization', 'Bearer geheim').expect(200);
   });
 
+  it('exports orders as CSV for Excel', async () => {
+    const { app } = setup();
+    await request(app)
+      .post('/api/orders')
+      .send({ items: [{ productId: 'interior-kit', quantity: 2 }], customer: { ...customer, notes: 'Bel; aan "a.u.b."' }, acceptTerms: true });
+    await request(app).get('/api/admin/orders.csv').expect(401);
+    const res = await request(app).get('/api/admin/orders.csv').set('Authorization', 'Bearer geheim').expect(200);
+    const [header, row] = res.text.replace(/^﻿/, '').split('\r\n');
+    expect(header.split(';')[0]).toBe('Bestelnummer');
+    expect(row).toContain('LU-1001;');
+    expect(row).toContain('2x Interior Care Kit;59,90;0,00;');
+  });
+
   it('is disabled without a password', async () => {
     const { app } = setup({ adminPassword: undefined });
     await request(app).get('/api/admin/orders').set('Authorization', 'Bearer ').expect(503);
