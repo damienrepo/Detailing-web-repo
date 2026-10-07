@@ -48,7 +48,7 @@ function ProductCard({ product, featured = false }: { product: Product; featured
       <article className="grid border border-paper-3 bg-paper md:grid-cols-2">
         <Link to={href} className="relative block" aria-label={product.name}>
           <ProductImage productId={product.id} />
-          {product.badge && <span className="eyebrow absolute left-4 top-4 bg-accent px-2.5 py-1.5 text-white">{product.badge}</span>}
+          {product.badge && <span className="eyebrow absolute left-4 top-4 bg-accent-fill px-2.5 py-1.5 text-white">{product.badge}</span>}
         </Link>
         <div className="flex flex-col justify-center p-6 md:p-12">
           <p className="eyebrow text-stone-dark">Set · {product.size}</p>

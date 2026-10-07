@@ -5,6 +5,7 @@ import { createApp } from './app';
 import { loadConfig } from './config';
 import { openDb } from './db';
 import { createMailer } from './mail';
+import { renderIndex } from './seo';
 import { MockProvider, MollieProvider, type PaymentProvider } from './payments';
 
 const config = loadConfig();
@@ -24,8 +25,9 @@ if (config.production) {
   app.use('/assets', express.static(path.join(dist, 'assets'), { immutable: true, maxAge: '1y' }));
   app.use(express.static(dist, { index: false, maxAge: '1h' }));
   app.use((req, res, next) => {
-    if (req.method !== 'GET') return next();
-    res.set('Cache-Control', 'no-cache').type('html').send(indexHtml);
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    const page = renderIndex(indexHtml, req.path, config.appUrl);
+    res.status(page.status).set('Cache-Control', 'no-cache').type('html').send(page.html);
   });
 } else {
   const { createServer } = await import('vite');

@@ -74,7 +74,7 @@ export function CartDrawer() {
           >
             <div className="flex h-16 items-center justify-between border-b border-ink/10 px-5 md:h-[72px]">
               <h2 className="font-display text-xl">
-                Winkelwagen <span className="tabular text-stone">({cart.count})</span>
+                Winkelwagen <span className="tabular text-stone-dark">({cart.count})</span>
               </h2>
               <button type="button" onClick={close} className="grid h-10 w-10 place-items-center hover:bg-ink/5" aria-label="Sluiten">
                 <X className="h-5 w-5" />

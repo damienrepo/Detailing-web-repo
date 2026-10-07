@@ -6,7 +6,7 @@ import { formatPrice } from '../../shared/pricing';
 type Variant = 'accent' | 'light' | 'dark' | 'outline-light' | 'outline-dark';
 
 const variants: Record<Variant, string> = {
-  accent: 'bg-accent text-white hover:bg-accent-strong',
+  accent: 'bg-accent-fill text-white hover:bg-accent-strong',
   light: 'bg-paper text-ink hover:bg-white',
   dark: 'bg-ink text-paper hover:bg-ink-3',
   'outline-light': 'border border-paper/30 text-paper hover:border-paper hover:bg-paper/5',
@@ -78,7 +78,7 @@ export function Price({ cents, compareAt, className = '' }: { cents: number; com
     <span className={`tabular inline-flex items-baseline gap-2 ${className}`}>
       <span>{formatPrice(cents)}</span>
       {compareAt && compareAt > cents && (
-        <span className="text-[0.8em] font-normal text-stone line-through">
+        <span className="text-[0.8em] font-normal text-stone-dark line-through">
           <span className="sr-only">Losse prijs </span>
           {formatPrice(compareAt)}
         </span>
@@ -139,7 +139,7 @@ function FieldShell({
     <div>
       <label htmlFor={id} className="mb-1.5 flex justify-between text-sm font-medium text-ink">
         <span>{label}</span>
-        {optional && <span className="font-normal text-stone">Optioneel</span>}
+        {optional && <span className="font-normal text-stone-dark">Optioneel</span>}
       </label>
       {children}
       {error ? (

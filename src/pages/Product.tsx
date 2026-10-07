@@ -66,7 +66,7 @@ function ProductDetail({ product }: { product: Product }) {
           <div className="md:sticky md:top-24">
             <div className="relative">
               <ProductImage productId={product.id} />
-              {product.badge && <span className="eyebrow absolute left-4 top-4 bg-accent px-2.5 py-1.5 text-white">{product.badge}</span>}
+              {product.badge && <span className="eyebrow absolute left-4 top-4 bg-accent-fill px-2.5 py-1.5 text-white">{product.badge}</span>}
             </div>
           </div>
         </div>

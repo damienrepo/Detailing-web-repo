@@ -276,10 +276,10 @@ function ShopTeaser() {
               <span className="text-sm text-stone-dark">incl. btw</span>
             </div>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Button variant="dark" onClick={() => add(kit.id)} className="flex-1">
+              <Button variant="dark" onClick={() => add(kit.id)} className="sm:flex-1">
                 In winkelwagen
               </Button>
-              <ButtonLink to={`/shop/${kit.slug}`} variant="outline-dark" className="flex-1">
+              <ButtonLink to={`/shop/${kit.slug}`} variant="outline-dark" className="sm:flex-1">
                 Meer informatie
               </ButtonLink>
             </div>
@@ -288,9 +288,9 @@ function ShopTeaser() {
 
         <div className="mt-px grid gap-px bg-paper-3 sm:grid-cols-3">
           {singles.map((p) => (
-            <Link key={p.id} to={`/shop/${p.slug}`} className="group flex flex-col bg-paper">
-              <ProductImage productId={p.id} className="aspect-[4/3]" />
-              <div className="flex items-baseline justify-between gap-4 p-5">
+            <Link key={p.id} to={`/shop/${p.slug}`} className="group flex items-center bg-paper sm:flex-col sm:items-stretch">
+              <ProductImage productId={p.id} className="w-28 shrink-0 sm:w-auto" />
+              <div className="flex flex-1 items-baseline justify-between gap-4 p-5">
                 <div>
                   <h3 className="font-medium group-hover:underline">{p.name}</h3>
                   <p className="text-sm text-stone-dark">{p.size}</p>
@@ -322,7 +322,7 @@ function Process() {
         <SectionHeading index="03" eyebrow="Werkwijze" title="Van aanvraag tot oplevering." />
         <ol className="mt-16 grid gap-px bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step, i) => (
-            <li key={step.title} className="bg-ink-2 pt-6 sm:p-8 sm:pl-0 lg:px-8 lg:first:pl-0">
+            <li key={step.title} className="bg-ink-2 py-8 sm:p-8 sm:pl-0 lg:px-8 lg:first:pl-0">
               <Reveal delay={i * 0.06}>
                 <p className="tabular font-mono text-sm text-accent">{String(i + 1).padStart(2, '0')}</p>
                 <h3 className="font-display mt-8 text-2xl">{step.title}</h3>
@@ -422,7 +422,7 @@ function Faq() {
 
 function ClosingCta() {
   return (
-    <section className="bg-accent text-white">
+    <section className="bg-accent-fill text-white">
       <div className="container-page flex flex-col gap-8 py-16 md:flex-row md:items-center md:justify-between md:py-20">
         <div>
           <h2 className="font-display text-[clamp(2rem,4vw,3rem)] leading-[1.02]">Klaar voor de studio?</h2>

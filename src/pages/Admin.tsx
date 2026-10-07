@@ -26,10 +26,10 @@ type Booking = {
 
 const ORDER_STATUS: Record<OrderStatus, { label: string; className: string }> = {
   open: { label: 'Wacht op betaling', className: 'bg-paper-2 text-stone-dark' },
-  paid: { label: 'Te verzenden', className: 'bg-accent text-white' },
+  paid: { label: 'Te verzenden', className: 'bg-accent-fill text-white' },
   shipped: { label: 'Verzonden', className: 'bg-[#e6f0ea] text-[#24533d]' },
   failed: { label: 'Betaling mislukt', className: 'bg-paper-2 text-stone-dark' },
-  cancelled: { label: 'Geannuleerd', className: 'bg-paper-2 text-stone' },
+  cancelled: { label: 'Geannuleerd', className: 'bg-paper-2 text-stone-dark' },
 };
 
 const BOOKING_STATUS: Record<Booking['status'], string> = {

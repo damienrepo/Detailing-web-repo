@@ -66,7 +66,7 @@ export function Header() {
           >
             <ShoppingBag className="h-5 w-5" strokeWidth={1.6} />
             {count > 0 && (
-              <span className="tabular absolute right-1 top-1 grid h-[18px] min-w-[18px] place-items-center bg-accent px-1 text-[11px] font-semibold text-white">
+              <span className="tabular absolute right-1 top-1 grid h-[18px] min-w-[18px] place-items-center bg-accent-fill px-1 text-[11px] font-semibold text-white">
                 {count}
               </span>
             )}

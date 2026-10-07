@@ -58,7 +58,24 @@ describe('checkout', () => {
         acceptTerms: true,
       });
     expect(res.status).toBe(400);
-    expect(Object.keys(res.body.fields)).toEqual(expect.arrayContaining(['email', 'postalCode']));
+    expect(res.body.fields).toMatchObject({
+      email: 'Vul een geldig e-mailadres in',
+      postalCode: 'Vul een geldige postcode in',
+    });
+  });
+
+  it('reports empty required fields in Dutch', async () => {
+    const res = await request(ctx.app)
+      .post('/api/orders')
+      .send({ items: [{ productId: 'interior-kit', quantity: 1 }], customer: { ...customer, name: '  ', city: '' }, acceptTerms: true });
+    expect(res.body.fields).toMatchObject({ name: 'Vul dit veld in', city: 'Vul dit veld in' });
+  });
+
+  it('rejects a Belgian postcode for a Dutch address', async () => {
+    const res = await request(ctx.app)
+      .post('/api/orders')
+      .send({ items: [{ productId: 'interior-kit', quantity: 1 }], customer: { ...customer, postalCode: '2000' }, acceptTerms: true });
+    expect(res.body.fields.postalCode).toBe('Deze postcode past niet bij het gekozen land');
   });
 
   it('requires accepting the terms', async () => {

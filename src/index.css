@@ -17,7 +17,8 @@
   --color-stone: #8d8a84;
   --color-stone-dark: #5f5c57;
   --color-accent: #e4572e;
-  --color-accent-strong: #b8411d;
+  --color-accent-fill: #c4431d;
+  --color-accent-strong: #a63a19;
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 }
