@@ -1,12 +1,13 @@
 import { CircleCheck, CircleX, Clock, Truck } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { formatPrice, SHIPPING } from '../../shared/pricing';
 import { SITE } from '../../shared/site';
 import type { PublicOrder } from '../../server/orders';
 import { Button, ButtonLink, Notice } from '../components/ui';
 import { api, ApiError } from '../lib/api';
 import { useCart } from '../lib/cart';
+import { goToPayment } from '../lib/demo';
 import { usePageMeta } from '../lib/meta';
 
 const POLL_MS = 3000;
@@ -16,6 +17,7 @@ export default function OrderStatus() {
   usePageMeta('Je bestelling', undefined, { noindex: true });
   const { publicId = '' } = useParams();
   const cart = useCart();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<PublicOrder>();
   const [error, setError] = useState<string>();
   const [retrying, setRetrying] = useState(false);
@@ -49,7 +51,7 @@ export default function OrderStatus() {
     setRetrying(true);
     try {
       const { checkoutUrl } = await api<{ checkoutUrl: string }>(`/orders/${encodeURIComponent(publicId)}/pay`, { method: 'POST' });
-      window.location.assign(checkoutUrl);
+      goToPayment(checkoutUrl, navigate);
     } catch (err) {
       setRetrying(false);
       setError(err instanceof ApiError ? err.message : 'Opnieuw betalen lukte niet');

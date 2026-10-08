@@ -7,6 +7,7 @@ import { Logo } from '../components/Logo';
 import { Button, Input, Notice } from '../components/ui';
 import { api, ApiError } from '../lib/api';
 import { usePageMeta } from '../lib/meta';
+import { confirmAction, DEMO } from '../lib/demo';
 
 const TOKEN_KEY = 'lumen.admin';
 
@@ -114,13 +115,29 @@ export default function Admin() {
             <span className="eyebrow text-paper/50">Beheer</span>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => exportCsv(token).catch((e) => setError(e.message))} className="h-10 px-3 text-sm hover:bg-white/10">
-              Exporteer CSV
-            </button>
-            <button type="button" onClick={load} className="grid h-10 w-10 place-items-center hover:bg-white/10" aria-label="Vernieuwen">
+            {!DEMO && (
+              <button
+                type="button"
+                onClick={() => exportCsv(token).catch((e) => setError(e.message))}
+                className="h-10 px-3 text-sm hover:bg-white/10"
+              >
+                Exporteer CSV
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={load}
+              className="grid h-10 w-10 place-items-center hover:bg-white/10"
+              aria-label="Vernieuwen"
+            >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
-            <button type="button" onClick={logout} className="grid h-10 w-10 place-items-center hover:bg-white/10" aria-label="Uitloggen">
+            <button
+              type="button"
+              onClick={logout}
+              className="grid h-10 w-10 place-items-center hover:bg-white/10"
+              aria-label="Uitloggen"
+            >
               <LogOut className="h-4 w-4" />
             </button>
           </div>
@@ -186,9 +203,16 @@ function Login({ onLogin, error: initialError }: { onLogin: (token: string) => v
       <form onSubmit={submit} className="w-full max-w-sm bg-paper p-8 text-ink">
         <h1 className="font-display text-2xl">Beheer</h1>
         <p className="mt-2 text-sm text-stone-dark">Log in om bestellingen en afspraakaanvragen te bekijken.</p>
+        {DEMO && <p className="mt-2 text-sm text-stone-dark">Demo: elk wachtwoord werkt.</p>}
         <div className="mt-6 space-y-4">
           {error && <Notice tone="error">{error}</Notice>}
-          <Input label="Wachtwoord" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Input
+            label="Wachtwoord"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
           <Button type="submit" variant="dark" className="w-full" disabled={busy || !password}>
             Inloggen
           </Button>
@@ -308,7 +332,12 @@ function OrderCard({ order, token, onChange, onError }: ListProps & { order: Ord
                 onChange={(e) => setTracking(e.target.value)}
                 aria-label="Track-and-trace code"
               />
-              <Button variant="dark" className="h-10 w-full text-sm" disabled={busy} onClick={() => action('ship', { trackingCode: tracking })}>
+              <Button
+                variant="dark"
+                className="h-10 w-full text-sm"
+                disabled={busy}
+                onClick={() => action('ship', { trackingCode: tracking })}
+              >
                 Markeer als verzonden
               </Button>
               <p className="text-xs text-stone-dark">De klant krijgt hiervan een e-mail.</p>
@@ -330,12 +359,16 @@ function OrderCard({ order, token, onChange, onError }: ListProps & { order: Ord
               variant="outline-dark"
               className="h-10 text-sm"
               disabled={busy}
-              onClick={() => window.confirm(`Bestelling ${order.number} annuleren?`) && action('cancel')}
+              onClick={() => confirmAction(`Bestelling ${order.number} annuleren?`) && action('cancel')}
             >
               Annuleren
             </Button>
           )}
-          {order.paid_at && <p className="mt-3 text-xs text-stone-dark">Betaald {date(order.paid_at)} {order.payment_method && `via ${order.payment_method}`}</p>}
+          {order.paid_at && (
+            <p className="mt-3 text-xs text-stone-dark">
+              Betaald {date(order.paid_at)} {order.payment_method && `via ${order.payment_method}`}
+            </p>
+          )}
         </div>
       </div>
     </li>
@@ -392,10 +425,16 @@ function BookingList({ bookings, token, onChange, onError }: ListProps & { booki
             </div>
             <div>
               <p className="text-stone-dark">Voorkeursdatum</p>
-              <p>{b.preferred_date ? new Date(b.preferred_date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Geen voorkeur'}</p>
+              <p>
+                {b.preferred_date
+                  ? new Date(b.preferred_date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })
+                  : 'Geen voorkeur'}
+              </p>
               <p className="mt-2 text-stone-dark">Aangevraagd {date(b.created_at)}</p>
             </div>
-            <div>{b.message ? <p className="bg-paper-2 p-2">“{b.message}”</p> : <p className="text-stone-dark">Geen toelichting</p>}</div>
+            <div>
+              {b.message ? <p className="bg-paper-2 p-2">“{b.message}”</p> : <p className="text-stone-dark">Geen toelichting</p>}
+            </div>
           </div>
         </li>
       ))}

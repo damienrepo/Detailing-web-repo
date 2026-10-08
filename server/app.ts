@@ -1,9 +1,8 @@
 import crypto from 'node:crypto';
 import express, { type NextFunction, type Request, type RequestHandler, type Response } from 'express';
-import { z } from 'zod';
 import { PRODUCTS } from '../shared/catalog';
-import { COUNTRIES, priceCart, PricingError } from '../shared/pricing';
-import { SERVICES } from '../shared/services';
+import { priceCart, PricingError } from '../shared/pricing';
+import { bookingSchema, bookingStatusSchema, checkoutSchema, fieldErrors, shipSchema } from '../shared/validation';
 import type { Config } from './config';
 import type { Db } from './db';
 import {
@@ -35,68 +34,6 @@ export type AppDeps = {
   payments?: PaymentProvider;
   mailer: Mailer;
 };
-
-const postalCodes = { NL: /^[1-9]\d{3}\s?[A-Za-z]{2}$/, BE: /^[1-9]\d{3}$/ } as const;
-
-const REQUIRED = 'Vul dit veld in';
-const trimmed = (max: number) =>
-  z
-    .string({ error: REQUIRED })
-    .trim()
-    .min(1, REQUIRED)
-    .max(max, `Maximaal ${max} tekens`);
-const email = z.email({ error: 'Vul een geldig e-mailadres in' }).max(200);
-const optionalText = (max: number) =>
-  z
-    .string()
-    .trim()
-    .max(max, `Maximaal ${max} tekens`)
-    .optional()
-    .transform((v) => v || undefined);
-
-const checkoutSchema = z
-  .object({
-    items: z
-      .array(z.object({ productId: z.string().max(50), quantity: z.number().int().min(1).max(20) }))
-      .min(1)
-      .max(10),
-    customer: z.object({
-      email,
-      name: trimmed(100),
-      phone: optionalText(30),
-      street: trimmed(100),
-      houseNumber: trimmed(15),
-      postalCode: trimmed(10).regex(/^\d{4}\s?[A-Za-z]{0,2}$/, 'Vul een geldige postcode in'),
-      city: trimmed(80),
-      country: z.enum(COUNTRIES as ['NL', 'BE']),
-      notes: optionalText(500),
-    }),
-    acceptTerms: z.literal(true, { error: 'Ga akkoord met de algemene voorwaarden' }),
-  })
-  .refine((v) => postalCodes[v.customer.country].test(v.customer.postalCode), {
-    path: ['customer', 'postalCode'],
-    message: 'Deze postcode past niet bij het gekozen land',
-  });
-
-const bookingSchema = z.object({
-  serviceId: z.enum(SERVICES.map((s) => s.id) as [string, ...string[]], { error: 'Kies een behandeling' }),
-  vehicle: trimmed(100),
-  preferredDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Kies een geldige datum')
-    .optional()
-    .or(z.literal('').transform(() => undefined)),
-  name: trimmed(100),
-  email,
-  phone: trimmed(30),
-  postalCode: optionalText(10),
-  message: optionalText(1000),
-  /** Honeypot: real visitors never fill this hidden field. */
-  website: z.string().max(0).optional(),
-});
-
-const shipSchema = z.object({ trackingCode: optionalText(60) });
-const bookingStatusSchema = z.object({ status: z.enum(['new', 'confirmed', 'done', 'cancelled']) });
 
 /** Small fixed-window rate limiter; enough to stop scripted form spam on a single instance. */
 function rateLimit(limit: number, windowMs: number): RequestHandler {
@@ -463,14 +400,6 @@ export class HttpError extends Error {
   }
 }
 
-function fieldErrors(error: z.ZodError) {
-  const fields: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = issue.path.filter((p) => p !== 'customer').join('.');
-    if (key && !fields[key]) fields[key] = issue.message;
-  }
-  return fields;
-}
 
 function mockCheckoutPage(id: string) {
   return `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">

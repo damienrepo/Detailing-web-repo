@@ -1,3 +1,5 @@
+import { DEMO } from './demo';
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -9,6 +11,10 @@ export class ApiError extends Error {
 }
 
 export async function api<T>(path: string, options: { method?: string; body?: unknown; token?: string } = {}): Promise<T> {
+  if (DEMO) {
+    const { demoApi } = await import('./demoApi');
+    return demoApi<T>(path, options);
+  }
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {

@@ -1,6 +1,6 @@
 import { Lock } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { COUNTRIES, formatPrice, SHIPPING, type Country } from '../../shared/pricing';
 import { SITE } from '../../shared/site';
 import { FreeShippingMeter } from '../components/CartDrawer';
@@ -8,6 +8,7 @@ import { ProductImage } from '../components/ProductArt';
 import { Button, ButtonLink, Input, Notice, Select, Textarea } from '../components/ui';
 import { api, ApiError } from '../lib/api';
 import { useCart } from '../lib/cart';
+import { DEMO, goToPayment } from '../lib/demo';
 import { usePageMeta } from '../lib/meta';
 
 type Form = {
@@ -35,6 +36,7 @@ function loadDraft(): Form {
 export default function Checkout() {
   usePageMeta('Afrekenen', undefined, { noindex: true });
   const cart = useCart();
+  const navigate = useNavigate();
   const { totals, country } = cart;
   const [form, setForm] = useState<Form>(loadDraft);
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -78,7 +80,7 @@ export default function Checkout() {
       const { checkoutUrl } = await api<{ checkoutUrl: string }>('/orders', {
         body: { items: cart.items, customer: { ...form, country }, acceptTerms },
       });
-      window.location.assign(checkoutUrl);
+      goToPayment(checkoutUrl, navigate);
     } catch (err) {
       setSubmitting(false);
       if (err instanceof ApiError) {
@@ -215,11 +217,11 @@ export default function Checkout() {
                 />
                 <span>
                   Ik ga akkoord met de{' '}
-                  <Link to="/voorwaarden" target="_blank" className="underline underline-offset-2">
+                  <Link to="/voorwaarden" target={DEMO ? undefined : '_blank'} className="underline underline-offset-2">
                     algemene voorwaarden
                   </Link>{' '}
                   en heb het{' '}
-                  <Link to="/privacy" target="_blank" className="underline underline-offset-2">
+                  <Link to="/privacy" target={DEMO ? undefined : '_blank'} className="underline underline-offset-2">
                     privacybeleid
                   </Link>{' '}
                   gelezen.

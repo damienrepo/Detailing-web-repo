@@ -34,7 +34,7 @@ export function Header() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-40 text-paper transition-colors duration-300 ${
+      className={`fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top,0px)] text-paper transition-colors duration-300 ${
         solid ? 'border-b border-white/10 bg-ink/95 backdrop-blur-sm' : 'border-b border-transparent bg-transparent'
       }`}
     >
