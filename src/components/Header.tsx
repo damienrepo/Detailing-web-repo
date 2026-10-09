@@ -1,4 +1,5 @@
 import { Menu, ShoppingBag, X } from 'lucide-react';
+import { SHOP } from '../../shared/content';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
 import { useCart } from '../lib/cart';
@@ -6,16 +7,19 @@ import { Logo } from './Logo';
 import { ButtonLink } from './ui';
 
 const NAV = [
-  { to: '/#diensten', label: 'Diensten' },
+  { to: '/diensten', label: 'Diensten' },
+  { to: '/over-ons', label: 'Over ons' },
   { to: '/shop', label: 'Shop' },
-  { to: '/#werkwijze', label: 'Werkwijze' },
+  { to: '/team', label: 'Team' },
+  { to: '/blog', label: 'Blog' },
   { to: '/contact', label: 'Contact' },
 ];
 
-/** Pages that start with a dark full-bleed hero; elsewhere the header is solid. */
-const TRANSPARENT_ON = ['/'];
+/** Pages that start with a dark hero; elsewhere the header is solid. */
+const transparentOn = (pathname: string) => ['/', '/diensten', '/blog', '/team', '/over-ons'].includes(pathname) || pathname.startsWith('/diensten/');
 
 export function Header() {
+  const nav = NAV.filter((item) => SHOP.enabled || item.to !== '/shop');
   const { count, open } = useCart();
   const { pathname } = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -30,7 +34,7 @@ export function Header() {
 
   useEffect(() => setMenuOpen(false), [pathname]);
 
-  const solid = scrolled || menuOpen || !TRANSPARENT_ON.includes(pathname);
+  const solid = scrolled || menuOpen || !transparentOn(pathname);
 
   return (
     <header
@@ -47,8 +51,8 @@ export function Header() {
       <div className="container-page flex h-16 items-center justify-between md:h-[72px]">
         <Logo />
 
-        <nav aria-label="Hoofdmenu" className="hidden items-center gap-9 text-[15px] text-paper/75 md:flex">
-          {NAV.map((item) => (
+        <nav aria-label="Hoofdmenu" className="hidden items-center gap-6 text-[15px] text-paper/75 md:flex lg:gap-9">
+          {nav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -62,19 +66,21 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2 md:gap-4">
-          <button
-            type="button"
-            onClick={open}
-            className="relative grid h-11 w-11 place-items-center transition-colors hover:bg-white/5"
-            aria-label={`Winkelwagen, ${count} ${count === 1 ? 'artikel' : 'artikelen'}`}
-          >
-            <ShoppingBag className="h-5 w-5" strokeWidth={1.6} />
-            {count > 0 && (
-              <span className="tabular absolute right-1 top-1 grid h-[18px] min-w-[18px] place-items-center bg-accent-fill px-1 text-[11px] font-semibold text-white">
-                {count}
-              </span>
-            )}
-          </button>
+          {SHOP.enabled && (
+            <button
+              type="button"
+              onClick={open}
+              className="relative grid h-11 w-11 place-items-center transition-colors hover:bg-white/5"
+              aria-label={`Winkelwagen, ${count} ${count === 1 ? 'artikel' : 'artikelen'}`}
+            >
+              <ShoppingBag className="h-5 w-5" strokeWidth={1.6} />
+              {count > 0 && (
+                <span className="tabular absolute right-1 top-1 grid h-[18px] min-w-[18px] place-items-center bg-accent-fill px-1 text-[11px] font-semibold text-ink">
+                  {count}
+                </span>
+              )}
+            </button>
+          )}
           <ButtonLink to="/afspraak" variant="light" className="h-10 px-5 text-sm max-md:hidden">
             Afspraak aanvragen
           </ButtonLink>
@@ -99,7 +105,7 @@ export function Header() {
       >
         <div className="overflow-hidden">
           <div className="container-page flex flex-col py-4">
-            {NAV.map((item) => (
+            {nav.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}

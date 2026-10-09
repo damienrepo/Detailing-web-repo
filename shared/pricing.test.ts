@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PRODUCTS, getProduct } from './catalog';
-import { formatPrice, priceCart, PricingError, SHIPPING, toMollieAmount } from './pricing';
+import { assertShippingAvailable, formatPrice, PICKUP, priceCart, PricingError, SHIPPING, toMollieAmount } from './pricing';
 
 describe('priceCart', () => {
   it('charges shipping below the free shipping threshold', () => {
@@ -70,5 +70,38 @@ describe('formatting', () => {
     expect(formatPrice(2995)).toMatch(/€\s?29,95/);
     expect(toMollieAmount(2995)).toBe('29.95');
     expect(toMollieAmount(500)).toBe('5.00');
+  });
+});
+
+describe('pickup and shipping settings', () => {
+  it('charges nothing for pickup and never asks to top up for free shipping', () => {
+    const totals = priceCart([{ productId: 'microfiber-towel', quantity: 1 }], 'NL', 'pickup');
+    expect(totals.shipping).toBe(PICKUP.cost);
+    expect(totals.freeShippingRemaining).toBe(0);
+  });
+
+  it('can make delivery never free', () => {
+    const saved = SHIPPING.NL.freeFrom;
+    SHIPPING.NL.freeFrom = null;
+    try {
+      const totals = priceCart([{ productId: 'interior-kit', quantity: 5 }], 'NL');
+      expect(totals.shipping).toBe(SHIPPING.NL.cost);
+      expect(totals.freeShippingRemaining).toBe(0);
+    } finally {
+      SHIPPING.NL.freeFrom = saved;
+    }
+  });
+
+  it('refuses methods and countries that are switched off', () => {
+    PICKUP.enabled = false;
+    SHIPPING.BE.enabled = false;
+    try {
+      expect(() => assertShippingAvailable('pickup', 'NL')).toThrow(PricingError);
+      expect(() => assertShippingAvailable('delivery', 'BE')).toThrow(/België/);
+      expect(() => assertShippingAvailable('delivery', 'NL')).not.toThrow();
+    } finally {
+      PICKUP.enabled = true;
+      SHIPPING.BE.enabled = true;
+    }
   });
 });

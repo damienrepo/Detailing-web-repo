@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from './app';
 import { loadConfig } from './config';
 import { openDb } from './db';
-import type { Mail } from './mail';
-import { MockProvider, MollieProvider } from './payments';
+import { MollieProvider } from './payments';
+import { setup, signedIn } from './testUtils';
 
 const customer = {
   email: 'klant@example.com',
@@ -16,15 +16,6 @@ const customer = {
   city: 'Amsterdam',
   country: 'NL',
 };
-
-function setup(overrides: Partial<ReturnType<typeof loadConfig>> = {}) {
-  const config = { ...loadConfig({}), adminPassword: 'geheim', notifyEmail: 'shop@example.com', ...overrides };
-  const db = openDb(':memory:');
-  const payments = new MockProvider(config.appUrl);
-  const sent: Mail[] = [];
-  const app = createApp({ config, db, payments, mailer: { send: async (m) => void sent.push(m) } });
-  return { app, db, payments, sent };
-}
 
 describe('checkout', () => {
   let ctx: ReturnType<typeof setup>;
@@ -44,7 +35,7 @@ describe('checkout', () => {
     expect(res.body.checkoutUrl).toMatch(/\/api\/dev\/mock-checkout\/tr_mock_/);
 
     const order = await request(ctx.app).get(`/api/orders/${res.body.orderId}`);
-    expect(order.body).toMatchObject({ number: 'LU-1001', status: 'open', subtotal: 2995, shipping: 495, total: 3490 });
+    expect(order.body).toMatchObject({ number: 'D2G-1001', status: 'open', subtotal: 2995, shipping: 495, total: 3490 });
     expect(order.body.address.postalCode).toBe('1017GB');
     expect(order.body).not.toHaveProperty('id');
   });
@@ -101,7 +92,7 @@ describe('checkout', () => {
 
     expect(order.body.status).toBe('paid');
     expect(ctx.sent.map((m) => m.to)).toEqual(['klant@example.com', 'shop@example.com']);
-    expect(ctx.sent[0].text).toContain('LU-1001');
+    expect(ctx.sent[0].text).toContain('D2G-1001');
   });
 
   it('syncs the payment status when the customer returns without a webhook', async () => {
@@ -132,9 +123,9 @@ describe('checkout', () => {
 
   it('still marks an order paid when the payment arrives after it was cancelled', async () => {
     const { body } = await placeOrder();
-    const auth = { Authorization: 'Bearer geheim' };
-    const [order] = (await request(ctx.app).get('/api/admin/orders').set(auth)).body;
-    await request(ctx.app).post(`/api/admin/orders/${order.id}/cancel`).set(auth).expect(200);
+    const client = await signedIn(ctx);
+    const [order] = (await client.get('/api/admin/orders')).body;
+    await client.post(`/api/admin/orders/${order.id}/cancel`).expect(200);
 
     const paymentId = body.checkoutUrl.split('/').pop();
     ctx.payments.settle(paymentId, 'paid');
@@ -166,7 +157,8 @@ describe('checkout', () => {
   });
 
   it('disables checkout when no payment provider is configured', async () => {
-    const config = { ...loadConfig({}) };
+    // In production without a Mollie key there is no provider at all.
+    const config = { ...loadConfig({}), production: true };
     const app = createApp({ config, db: openDb(':memory:'), mailer: { send: async () => {} } });
     const res = await request(app)
       .post('/api/orders')
@@ -178,7 +170,7 @@ describe('checkout', () => {
 
 describe('bookings', () => {
   const booking = {
-    serviceId: 'coating',
+    serviceId: 'coatings',
     vehicle: 'Volkswagen Golf 8',
     preferredDate: '2026-11-03',
     name: 'Jan Jansen',
@@ -215,49 +207,43 @@ describe('bookings', () => {
 });
 
 describe('admin', () => {
-  it('requires the admin password', async () => {
-    const { app } = setup();
-    await request(app).get('/api/admin/orders').expect(401);
-    await request(app).get('/api/admin/orders').set('Authorization', 'Bearer fout').expect(401);
-    await request(app).get('/api/admin/orders').set('Authorization', 'Bearer geheim').expect(200);
+  it('requires a signed-in admin', async () => {
+    const ctx = setup();
+    await request(ctx.app).get('/api/admin/orders').expect(401);
+    await request(ctx.app).get('/api/admin/orders').set('Authorization', 'Bearer geheim').expect(401);
+    const client = await signedIn(ctx);
+    await client.get('/api/admin/orders').expect(200);
   });
 
   it('exports orders as CSV for Excel', async () => {
-    const { app } = setup();
-    await request(app)
+    const ctx = setup();
+    await request(ctx.app)
       .post('/api/orders')
       .send({ items: [{ productId: 'interior-kit', quantity: 2 }], customer: { ...customer, notes: 'Bel; aan "a.u.b."' }, acceptTerms: true });
-    await request(app).get('/api/admin/orders.csv').expect(401);
-    const res = await request(app).get('/api/admin/orders.csv').set('Authorization', 'Bearer geheim').expect(200);
-    const [header, row] = res.text.replace(/^﻿/, '').split('\r\n');
+    await request(ctx.app).get('/api/admin/orders.csv').expect(401);
+    const client = await signedIn(ctx);
+    const res = await client.get('/api/admin/orders.csv').expect(200);
+    const [header, row] = res.text.replace(/^\uFEFF/, '').split('\r\n');
     expect(header.split(';')[0]).toBe('Bestelnummer');
-    expect(row).toContain('LU-1001;');
+    expect(row).toContain('D2G-1001;');
     expect(row).toContain('2x Interior Care Kit;59,90;0,00;');
   });
 
-  it('is disabled without a password', async () => {
-    const { app } = setup({ adminPassword: undefined });
-    await request(app).get('/api/admin/orders').set('Authorization', 'Bearer ').expect(503);
-  });
-
   it('ships paid orders and mails the tracking code', async () => {
-    const { app, payments, sent } = setup();
-    const { body } = await request(app)
+    const ctx = setup();
+    const { body } = await request(ctx.app)
       .post('/api/orders')
       .send({ items: [{ productId: 'interior-cleaner', quantity: 1 }], customer, acceptTerms: true });
-    const auth = { Authorization: 'Bearer geheim' };
+    const client = await signedIn(ctx);
 
-    const [order] = (await request(app).get('/api/admin/orders').set(auth)).body;
-    await request(app).post(`/api/admin/orders/${order.id}/ship`).set(auth).send({}).expect(409);
+    const [order] = (await client.get('/api/admin/orders')).body;
+    await client.post(`/api/admin/orders/${order.id}/ship`).send({}).expect(409);
 
-    payments.settle(body.checkoutUrl.split('/').pop(), 'paid');
-    await request(app).get(`/api/orders/${body.orderId}`);
-    const shipped = await request(app)
-      .post(`/api/admin/orders/${order.id}/ship`)
-      .set(auth)
-      .send({ trackingCode: '3SABCD1234567' });
+    ctx.payments.settle(body.checkoutUrl.split('/').pop(), 'paid');
+    await request(ctx.app).get(`/api/orders/${body.orderId}`);
+    const shipped = await client.post(`/api/admin/orders/${order.id}/ship`).send({ trackingCode: '3SABCD1234567' });
     expect(shipped.body).toMatchObject({ status: 'shipped', tracking_code: '3SABCD1234567' });
-    expect(sent.at(-1)!.text).toContain('3SABCD1234567-NL-1017GB');
+    expect(ctx.sent.at(-1)!.text).toContain('3SABCD1234567-NL-1017GB');
   });
 });
 
@@ -267,6 +253,7 @@ describe('site files', () => {
     await request(app).get('/robots.txt').expect(200).expect(/Sitemap: http:\/\/localhost:3000\/sitemap.xml/);
     const sitemap = await request(app).get('/sitemap.xml').expect(200);
     expect(sitemap.text).toContain('/shop/interior-care-kit');
+    expect(sitemap.text).toContain('/diensten/technische-ruimte');
   });
 
   it('sets a content security policy in production', async () => {
@@ -294,7 +281,7 @@ describe('MollieProvider', () => {
     const mollie = new MollieProvider('test_123', fakeFetch);
     const payment = await mollie.create({
       amount: 3490,
-      description: 'Bestelling LU-1001',
+      description: 'Bestelling D2G-1001',
       redirectUrl: 'https://example.com/bestelling/pub1',
       orderPublicId: 'pub1',
     });

@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { BUNDLE_ID, getProduct, PRODUCTS, type Product } from '../../shared/catalog';
+import { getBundle, listedProducts, type Product } from '../../shared/catalog';
 import { ProductImage } from '../components/ProductArt';
 import { ShopUsps } from '../components/ShopUsps';
 import { Button, Eyebrow, Price } from '../components/ui';
@@ -7,9 +7,9 @@ import { useCart } from '../lib/cart';
 import { usePageMeta } from '../lib/meta';
 
 export default function Shop() {
-  usePageMeta('Shop — interieurverzorging', 'Interior Cleaner, Interior Detailing Brush, microvezel doek en de voordelige Interior Care Kit. Verzonden binnen 1–2 werkdagen.');
-  const kit = getProduct(BUNDLE_ID)!;
-  const singles = PRODUCTS.filter((p) => p.id !== BUNDLE_ID);
+  usePageMeta('Shop — interieurverzorging', 'Producten voor het onderhoud van je auto, dezelfde die wij dagelijks gebruiken. Verzonden binnen 1–2 werkdagen.');
+  const kit = getBundle();
+  const singles = listedProducts().filter((p) => p.id !== kit?.id);
 
   return (
     <div className="bg-paper pt-16 text-ink md:pt-[72px]">
@@ -18,14 +18,14 @@ export default function Shop() {
         <div className="mt-5 grid gap-6 md:grid-cols-12 md:items-end">
           <h1 className="font-display text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.98] md:col-span-7">Interieurverzorging</h1>
           <p className="text-[17px] leading-relaxed text-stone-dark md:col-span-5">
-            Drie producten die we zelf in de studio gebruiken. Los te bestellen, of voordeliger als set.
+            Producten die we zelf dagelijks gebruiken.{kit && ' Los te bestellen, of voordeliger als set.'}
           </p>
         </div>
       </section>
 
       <section className="container-page" aria-label="Producten">
-        <ProductCard product={kit} featured />
-        <div className="mt-px grid gap-px bg-paper-3 sm:grid-cols-2 lg:grid-cols-3">
+        {kit && <ProductCard product={kit} featured />}
+        <div className={`grid border-l border-paper-3 sm:grid-cols-2 lg:grid-cols-3 ${kit ? '' : 'border-t'}`}>
           {singles.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
@@ -48,7 +48,7 @@ function ProductCard({ product, featured = false }: { product: Product; featured
       <article className="grid border border-paper-3 bg-paper md:grid-cols-2">
         <Link to={href} className="relative block" aria-label={product.name}>
           <ProductImage productId={product.id} />
-          {product.badge && <span className="eyebrow absolute left-4 top-4 bg-accent-fill px-2.5 py-1.5 text-white">{product.badge}</span>}
+          {product.badge && <span className="eyebrow absolute left-4 top-4 bg-accent-fill px-2.5 py-1.5 text-ink">{product.badge}</span>}
         </Link>
         <div className="flex flex-col justify-center p-6 md:p-12">
           <p className="eyebrow text-stone-dark">Set · {product.size}</p>
@@ -78,7 +78,7 @@ function ProductCard({ product, featured = false }: { product: Product; featured
   }
 
   return (
-    <article className="group flex flex-col bg-paper">
+    <article className="group flex flex-col border-b border-r border-paper-3 bg-paper">
       <Link to={href} className="block" aria-label={product.name}>
         <ProductImage productId={product.id} />
       </Link>

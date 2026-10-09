@@ -1,0 +1,222 @@
+{
+ "content": [
+  {
+   "key": "site",
+   "value": "{\"tagline\":\"Car detailing in Enschede en omstreken\",\"description\":\"Car detailing in Enschede en omstreken: luxe handwas, interieurreiniging, polijsten, glascoating, PPF en schadeherstel.\",\"region\":\"Enschede en omstreken\",\"legalName\":\"Detail2Go\",\"address\":{\"street\":\"\",\"postalCode\":\"\",\"city\":\"Enschede\",\"country\":\"Nederland\"},\"phone\":\"06 22 76 75 54\",\"email\":\"contact@detail2go.nl\",\"kvk\":\"93429177\",\"vatNumber\":\"NL866395283B01\",\"hours\":[{\"days\":\"Maandag – vrijdag\",\"time\":\"08:30 – 18:00\"},{\"days\":\"Zaterdag\",\"time\":\"09:00 – 15:00\"},{\"days\":\"Zondag\",\"time\":\"Gesloten\"}],\"social\":{\"instagram\":\"https://www.instagram.com/detail2go_/\",\"tiktok\":\"https://www.tiktok.com/@detail2go\"}}",
+   "updated_at": "2026-10-09 09:44:19"
+  },
+  {
+   "key": "products",
+   "value": "[{\"id\":\"interior-kit\",\"slug\":\"interior-care-kit\",\"sku\":\"D2G-KIT-01\",\"name\":\"Interior Care Kit\",\"category\":\"Set\",\"tagline\":\"Cleaner, borstel en doek — alles voor een strak interieur.\",\"description\":[\"Dezelfde drie producten die wij dagelijks bij onze klanten gebruiken, samen in één set. Spuit, borstel los, neem af: klaar.\",\"De set is samengesteld voor het onderhoud tussen twee professionele behandelingen in, maar werkt net zo goed als startpakket voor wie zelf het interieur wil verzorgen.\"],\"price\":2495,\"compareAtPrice\":3385,\"size\":\"3 producten\",\"highlights\":[\"Interior Cleaner 500 ml\",\"Interior Detailing Brush\",\"Microvezel doek 40 × 40 cm\",\"Voordeliger dan los\"],\"specs\":[{\"label\":\"Inhoud\",\"value\":\"Cleaner 500 ml, borstel, microvezel doek\"},{\"label\":\"Geschikt voor\",\"value\":\"Kunststof, vinyl, rubber, stof en leer\"},{\"label\":\"Artikelnummer\",\"value\":\"D2G-KIT-01\"}],\"usage\":[\"Spuit de cleaner op de borstel of direct op het oppervlak.\",\"Werk het vuil los met de borstel, ook in naden en ventilatieroosters.\",\"Neem af met de droge microvezel doek.\"],\"includes\":[{\"productId\":\"interior-cleaner\",\"quantity\":1},{\"productId\":\"interior-brush\",\"quantity\":1},{\"productId\":\"microfiber-towel\",\"quantity\":1}],\"badge\":\"Bespaar € 7,90\",\"inStock\":true,\"hidden\":false},{\"id\":\"interior-cleaner\",\"slug\":\"interior-cleaner\",\"sku\":\"D2G-IC-500\",\"name\":\"Interior Cleaner\",\"category\":\"Reiniger\",\"tagline\":\"Reinigt dashboard, deurpanelen en bekleding zonder glans of vettig laagje.\",\"description\":[\"Onze Interior Cleaner verwijdert vingerafdrukken, stof, vlekken en vuil van alle harde en zachte oppervlakken in het interieur. Het resultaat is een schone, matte fabrieksafwerking — geen plakkerige glans.\",\"De formule is veilig voor kunststof, vinyl, rubber, stof en leer, en droogt streeploos op. Ook geschikt voor schermen met een anti-reflectielaag wanneer je op de doek spuit.\"],\"price\":1695,\"size\":\"500 ml\",\"highlights\":[\"Matte, streeploze afwerking\",\"Voor harde én zachte oppervlakken\",\"Frisse, neutrale geur\",\"Klaar voor gebruik\"],\"specs\":[{\"label\":\"Inhoud\",\"value\":\"500 ml spuitflacon\"},{\"label\":\"Geschikt voor\",\"value\":\"Kunststof, vinyl, rubber, stof en leer\"},{\"label\":\"Afwerking\",\"value\":\"Mat, geen glans\"},{\"label\":\"Artikelnummer\",\"value\":\"D2G-IC-500\"}],\"usage\":[\"Goed schudden voor gebruik.\",\"Spuit op de borstel of doek, of direct op het oppervlak.\",\"Werk het vuil los en neem na met een schone, droge microvezel doek.\",\"Bij gevoelige materialen eerst op een onopvallende plek testen.\"],\"inStock\":true},{\"id\":\"interior-brush\",\"slug\":\"interior-detailing-brush\",\"sku\":\"D2G-BR-01\",\"name\":\"Interior Detailing Brush\",\"category\":\"Borstel\",\"tagline\":\"Zachte haren voor naden, knoppen en ventilatieroosters.\",\"description\":[\"Een borstel met zachte, dichte haren die vuil uit naden, stiknaden, knoppen en ventilatieroosters haalt zonder krassen op hoogglans kunststof of schermen.\",\"De ergonomische steel ligt goed in de hand en de haren houden hun vorm, ook na veel gebruik met reinigingsmiddel.\"],\"price\":995,\"size\":\"1 stuk\",\"highlights\":[\"Krasvrij op hoogglans en schermen\",\"Bereikt naden en roosters\",\"Vormvaste haren\",\"Uitwasbaar\"],\"specs\":[{\"label\":\"Haren\",\"value\":\"Zacht synthetisch\"},{\"label\":\"Gebruik\",\"value\":\"Dashboard, roosters, naden, leer\"},{\"label\":\"Onderhoud\",\"value\":\"Uitspoelen met lauw water, laten drogen\"},{\"label\":\"Artikelnummer\",\"value\":\"D2G-BR-01\"}],\"usage\":[\"Spuit Interior Cleaner op de haren.\",\"Borstel met lichte druk in kleine cirkels.\",\"Neem het losgemaakte vuil op met een microvezel doek.\",\"Spoel de borstel na gebruik uit en laat hem met de haren naar beneden drogen.\"],\"inStock\":true,\"hidden\":false},{\"id\":\"microfiber-towel\",\"slug\":\"microvezel-doek\",\"sku\":\"D2G-MF-40\",\"name\":\"Microvezel doek\",\"category\":\"Doek\",\"tagline\":\"Randloze doek die vuil opneemt in plaats van het rond te duwen.\",\"description\":[\"Een randloze microvezel doek van 40 × 40 cm. Zonder stikrand, dus geen risico op krassen op hoogglans afwerkingen en schermen.\",\"Neemt vuil en reinigingsmiddel op en laat geen pluisjes of strepen achter. Wasbaar en lang mee te gaan.\"],\"price\":695,\"size\":\"40 × 40 cm\",\"highlights\":[\"Randloos, zonder stikrand\",\"Pluisvrij en streeploos\",\"Hoge opname\",\"Wasbaar tot 40 °C\"],\"specs\":[{\"label\":\"Afmeting\",\"value\":\"40 × 40 cm\"},{\"label\":\"Rand\",\"value\":\"Randloos (lasergesneden)\"},{\"label\":\"Wassen\",\"value\":\"Max. 40 °C, zonder wasverzachter\"},{\"label\":\"Artikelnummer\",\"value\":\"D2G-MF-40\"}],\"usage\":[\"Vouw de doek in vieren voor acht schone werkvlakken.\",\"Neem af met lichte druk, draai naar een schone kant als de doek vuil wordt.\",\"Wassen op max. 40 °C zonder wasverzachter, niet strijken.\"],\"inStock\":true,\"hidden\":false}]",
+   "updated_at": "2026-10-09 16:05:25"
+  },
+  {
+   "key": "home",
+   "value": "{\"heroTitle\":\"Tot in het\\nkleinste detail.\",\"heroText\":\"Van luxe handwas tot glascoating en PPF. Bij jou op de oprit of in onze werkplaats, met een heldere prijsopgave vooraf.\",\"heroImage\":\"m_an1j061a0arh3e7m\",\"servicesTitle\":\"Van wasbeurt tot lakbescherming.\",\"servicesIntro\":\"Iedere behandeling begint met een eerlijke inspectie. We vertellen vooraf wat haalbaar is, wat het kost en hoe lang het duurt.\",\"shopTitle\":\"Onze favoriete producten, nu voor thuis.\",\"shopIntro\":\"Dezelfde producten die wij dagelijks gebruiken. Voor het onderhoud tussen twee behandelingen in, of als je zelf aan de slag wilt.\",\"stepsTitle\":\"Van aanvraag tot oplevering.\",\"steps\":[{\"title\":\"Aanvraag\",\"text\":\"Vraag online een afspraak aan. Je hoort binnen één werkdag van ons met een voorstel voor datum en prijs.\"},{\"title\":\"Inspectie\",\"text\":\"We bekijken de auto samen, meten de laklaagdikte waar nodig en vertellen eerlijk wat haalbaar is.\"},{\"title\":\"Behandeling\",\"text\":\"Bij jou op locatie of in onze werkplaats, met de tijd en aandacht die de behandeling nodig heeft.\"},{\"title\":\"Oplevering\",\"text\":\"We lopen het resultaat samen na en geven advies, zodat je auto lang zo mooi blijft.\"}],\"resultsTitle\":\"Recent opgeleverd.\",\"resultsIntro\":\"Een greep uit het werk van de afgelopen maanden. Meer projecten zie je op Instagram.\",\"results\":[{\"images\":[\"m_shvldy6gjkl5f8i2\"],\"title\":\"Mercedes S klasse\",\"text\":\"Lakcorrectie en glascoating\"},{\"images\":[\"m_wbko16en2buhbp2i\"],\"title\":\"Audi RS Q8\",\"text\":\"Lakcorrectie en glascoating\"},{\"images\":[\"m_klz313x2zmjpaiv3\"],\"title\":\"Porsche Panamera\",\"text\":\"Lakcorrectie en interieur-behandeling\"},{\"images\":[\"m_an1j061a0arh3e7m\"],\"title\":\"Ferrari 296 Novitec\",\"text\":\"Lakcorrectie en glascoating\"},{\"images\":[\"m_y2znn3hls756sckc\",\"m_hdusjd0vn46y3vnn\",\"m_ah72z3z9ufhn1p3x\",\"m_74z92z5r6fu1tkni\",\"m_605vd5beobmubdwt\"],\"title\":\"Range Rover\",\"text\":\"Lakcorrectie en glascoating\"}],\"faqTitle\":\"Goed om te weten.\",\"faq\":[{\"q\":\"Hoe vraag ik een afspraak aan?\",\"a\":\"Via het aanvraagformulier op deze site, telefonisch, via WhatsApp of per e-mail. We nemen binnen één werkdag contact op om de datum en de prijs te bevestigen. Pas daarna staat de afspraak vast.\"},{\"q\":\"Komen jullie ook bij mij thuis?\",\"a\":\"Ja. Wassen, interieurreiniging, de technische ruimte en het handwas abonnement doen we ook op locatie in Enschede en omstreken. We hebben dan een stroom- en wateraansluiting en wat ruimte rondom de auto nodig. Polijsten, coatings, PPF en schadeherstel doen we in onze werkplaats.\"},{\"q\":\"Waarom staan er vanaf-prijzen?\",\"a\":\"De prijs hangt af van het formaat en de staat van de auto. Je krijgt altijd vooraf een prijsopgave; stuur gerust een paar foto’s mee met je aanvraag voor een nauwkeurige inschatting.\"},{\"q\":\"Hoe lang ben ik mijn auto kwijt?\",\"a\":\"Een wasbeurt of interieurbehandeling is binnen een dagdeel klaar. Polijsten en coatings duren één tot drie dagen, omdat een coating ook moet uitharden voordat de auto de weg op gaat.\"}],\"ctaTitle\":\"Klaar om je auto te laten stralen?\",\"ctaText\":\"Vraag een afspraak aan en je hoort binnen één werkdag van ons.\"}",
+   "updated_at": "2026-10-09 19:54:27"
+  },
+  {
+   "key": "services",
+   "value": "{\"handwas-abonnement\":{\"hidden\":false,\"name\":\"Handwas abonnement\",\"tagline\":\"Je auto het hele jaar door schoon, zonder dat je er nog naar om hoeft te kijken.\",\"summary\":\"Vaste luxe handwas op een frequentie die bij jou past, bij je thuis of op het werk, tegen een vaste prijs per beurt.\",\"intro\":[\"Met een abonnement hoef je nooit meer zelf een afspraak te plannen. We spreken een vaste frequentie af — bijvoorbeeld elke twee of vier weken — en komen op het afgesproken moment bij je langs voor een luxe handwas.\",\"Regelmatig wassen voorkomt dat vuil, vogelpoep en remstof zich vastzetten in de lak. Dat houdt je auto niet alleen mooi, het beschermt ook de waarde. Heb je een coating? Dan zorgt een vaste wasbeurt ervoor dat die maximaal blijft presteren.\"],\"fromPrice\":null,\"duration\":\"1,5 – 2 uur per beurt\",\"onLocation\":true,\"image\":\"m_hdusjd0vn46y3vnn\",\"imageAlt\":\"Zwarte Audi RS Q8 glanzend schoon op een oprit in het bos\",\"includes\":[\"Luxe handwas op vaste momenten\",\"Velgen, wielkasten en instaplijsten\",\"Ruiten en dressing van banden\",\"Vaste prijs per beurt\",\"Voorrang bij het inplannen van extra behandelingen\",\"Onderhoud dat past bij een coating\"],\"benefits\":[{\"title\":\"Altijd schoon\",\"text\":\"Geen vuil dat zich weken vastzet: de lak blijft in topconditie.\"},{\"title\":\"Geen omkijken\",\"text\":\"Vaste dag en tijd. Wij komen langs, jij hoeft niets te regelen.\"},{\"title\":\"Vaste prijs\",\"text\":\"Je weet vooraf precies wat je per beurt betaalt, zonder verrassingen.\"},{\"title\":\"Voorrang\",\"text\":\"Abonnees krijgen voorrang bij het plannen van polijsten, coatings en interieurreiniging.\"}],\"steps\":[{\"title\":\"Kennismaking\",\"text\":\"We bekijken de auto, spreken de frequentie en locatie af en sturen je een voorstel.\"},{\"title\":\"Vaste planning\",\"text\":\"Je krijgt vaste momenten in de agenda. Een week niet uitgekomen? Dan schuiven we in overleg.\"},{\"title\":\"Wasbeurt\",\"text\":\"Iedere beurt een complete luxe handwas, met dezelfde aandacht als de eerste keer.\"},{\"title\":\"Advies\",\"text\":\"Zien we dat de lak of het interieur extra aandacht nodig heeft, dan laten we het je weten.\"}],\"faq\":[{\"q\":\"Kan ik ook kiezen voor een andere frequentie?\",\"a\":\"Ja. De frequenties hierboven zijn een richtlijn, we stemmen het abonnement af op hoe je de auto gebruikt.\"},{\"q\":\"Kan ik er een interieurbeurt aan toevoegen?\",\"a\":\"Zeker. Veel abonnees combineren de wasbeurt periodiek met een interieurreiniging. Geef het aan in je aanvraag.\"},{\"q\":\"Wat heb ik nodig als jullie bij mij komen?\",\"a\":\"Een stroom- en wateraansluiting en genoeg ruimte rondom de auto om goed te kunnen werken. Wij nemen alle apparatuur en producten mee.\"}]},\"handwas-op-locatie\":{\"hidden\":false,\"name\":\"Reiniging op locatie\",\"tagline\":\"Binnen en buiten schoon, bij jou thuis of op het werk.\",\"summary\":\"Complete interieur- en exterieurreiniging op je eigen adres. Geen reistijd, met dezelfde producten en aandacht als in onze werkplaats.\",\"intro\":[\"Geen tijd om je auto weg te brengen? Dan komen wij naar je toe. Thuis op de oprit of op de parkeerplaats van je werk: we komen volledig uitgerust en reinigen je auto van binnen en van buiten.\",\"Je krijgt precies dezelfde kwaliteit als in onze werkplaats. Ondertussen ga jij gewoon door met je dag — en wil je zien hoe we werken, dan kijk je gerust even mee.\"],\"fromPrice\":null,\"duration\":\"3 – 5 uur\",\"onLocation\":true,\"image\":\"luxe-handwas\",\"imageAlt\":\"Het Detail2Go-team bij een Porsche Boxster Spyder op locatie\",\"includes\":[\"Luxe handwas van het exterieur\",\"Velgen, wielkasten en instaplijsten\",\"Stofzuigen incl. kofferbak en matten\",\"Dashboard, panelen en kunststof\",\"Ruiten binnen- en buitenzijde\",\"Premium producten, wij nemen alles mee\"],\"benefits\":[{\"title\":\"Geen reistijd\",\"text\":\"Je auto blijft waar hij staat. Wij komen naar Enschede en omstreken.\"},{\"title\":\"Flexibel\",\"text\":\"We plannen een moment dat jou uitkomt, ook op het werk.\"},{\"title\":\"Zelfde standaard\",\"text\":\"Dezelfde producten, apparatuur en aandacht als in onze werkplaats.\"}],\"steps\":[{\"title\":\"Aanvragen\",\"text\":\"Laat ons weten waar de auto staat en wanneer het je uitkomt.\"},{\"title\":\"Inplannen\",\"text\":\"We nemen contact op om een datum en tijd te bevestigen.\"},{\"title\":\"Aankomst\",\"text\":\"We komen op tijd en volledig uitgerust aan. Jij zorgt voor water en stroom.\"},{\"title\":\"Reiniging\",\"text\":\"Interieur en exterieur worden grondig gereinigd, tot in de details.\"},{\"title\":\"Inspectie\",\"text\":\"We lopen de auto samen met je na en geven tips om het resultaat lang mooi te houden.\"}],\"faq\":[{\"q\":\"Wat heb ik nodig als jullie bij mij komen?\",\"a\":\"Een stroom- en wateraansluiting en genoeg ruimte rondom de auto om goed te kunnen werken. Wij nemen alle apparatuur en producten mee.\"},{\"q\":\"Moet ik thuis zijn?\",\"a\":\"Niet per se. Als de auto bereikbaar is en we water en stroom kunnen gebruiken, spreken we vooraf af hoe we de sleutel en de oplevering regelen.\"},{\"q\":\"Kunnen jullie ook polijsten of coaten op locatie?\",\"a\":\"Polijsten en coatings doen we het liefst in onze werkplaats, waar we licht, temperatuur en stof onder controle hebben. Vraag gerust wat in jouw situatie mogelijk is.\"}]},\"luxe-handwas\":{\"hidden\":false,\"name\":\"Luxe handwas\",\"tagline\":\"De veiligste manier om je auto te wassen, met de hand en met aandacht.\",\"summary\":\"Grondige handwas van lak, velgen, wielkasten en instaplijsten, inclusief ruiten en dressing van banden en kunststof.\",\"intro\":[\"Een wasstraat is snel, maar borstels en vuil water laten fijne krassen achter die je in de zon terugziet als swirls. Wij wassen met de hand, met de twee-emmermethode en schone microvezel, zodat de lak zo min mogelijk wordt aangeraakt door vuil.\",\"Na het wassen krijgen banden en kunststof een verzorgende dressing en maken we de ruiten streeploos schoon. Het resultaat: een auto die er weer als nieuw uitziet, zonder risico voor de lak.\"],\"fromPrice\":7260,\"duration\":\"1,5 – 2 uur\",\"onLocation\":true,\"image\":\"m_i9oxmeqt5zbvxsly\",\"imageAlt\":\"Auto wordt voorgespoeld met een hogedrukspuit bij zonsondergang\",\"includes\":[\"Voorspoelen met hogedruk en voorwas\",\"Handwas met twee-emmermethode\",\"Velgen en wielkasten reinigen\",\"Instaplijsten en deurstijlen\",\"Kunststof en banden dressen\",\"Ruiten binnen- en buitenzijde\"],\"benefits\":[{\"title\":\"Lakvriendelijk\",\"text\":\"Geen borstels of hergebruikt water: de kans op krassen is minimaal.\"},{\"title\":\"Tot in de details\",\"text\":\"Ook de plekken die een wasstraat overslaat, zoals deurstijlen en wielkasten.\"},{\"title\":\"Bij jou op de oprit\",\"text\":\"We komen naar je toe in Enschede en omstreken, of je brengt de auto langs.\"}],\"steps\":[{\"title\":\"Voorspoelen\",\"text\":\"Losliggend vuil en zand spoelen we eerst weg met hogedruk en een voorwas, zodat het niet over de lak wordt gewreven.\"},{\"title\":\"Handwas\",\"text\":\"Paneel voor paneel wassen met een pH-neutrale shampoo en de twee-emmermethode.\"},{\"title\":\"Velgen & wielkasten\",\"text\":\"Remstof en wegvuil verwijderen met aparte borstels en producten.\"},{\"title\":\"Afwerking\",\"text\":\"Drogen met zachte droogdoeken, ruiten streeploos en dressing op banden en kunststof.\"}],\"faq\":[{\"q\":\"Hoe vaak moet ik mijn auto laten wassen?\",\"a\":\"Gemiddeld eens per twee tot vier weken. Met een handwas abonnement plannen we dat vast voor je in, tegen een vaste prijs per beurt.\"},{\"q\":\"Is een handwas ook goed voor een auto met coating?\",\"a\":\"Juist. Een coating blijft het langst mooi met een veilige handwas en de juiste shampoo. Een wasstraat slijt de coating sneller.\"},{\"q\":\"Wat heb ik nodig als jullie bij mij komen?\",\"a\":\"Een stroom- en wateraansluiting en genoeg ruimte rondom de auto om goed te kunnen werken. Wij nemen alle apparatuur en producten mee.\"}]}}",
+   "updated_at": "2026-10-09 19:04:58"
+  },
+  {
+   "key": "about",
+   "value": "{\"homeTitle\":\"Twee autoliefhebbers, één standaard.\",\"homeText\":\"Detail2Go is opgericht door Damiën van der Veen en Stein Veldman. Wat begon als een gedeelde passie voor auto’s, is uitgegroeid tot een detailingbedrijf dat draait om precisie, vakmanschap en eerlijk advies. Iedere auto behandelen we alsof het onze eigen is.\",\"image\":\"team\",\"heroTitle\":\"Passie voor auto’s,\\ntot in het kleinste detail.\",\"heroText\":\"Wij zijn Detail2Go: twee jonge autoliefhebbers uit Twente die van autoverzorging hun vak hebben gemaakt.\",\"storyTitle\":\"Ons verhaal\",\"story\":[\"Detail2Go is opgericht door Damiën van der Veen en Stein Veldman. Wat begon als een gedeelde passie voor auto’s, is uitgegroeid tot een eigen detailingbedrijf in Enschede en omstreken.\",\"We zagen dat goede autoverzorging vaak onpersoonlijk is, of veel gedoe kost: auto wegbrengen, wachten, weer ophalen. Dat kan beter. Daarom komen we naar je toe, werken we met de beste producten en nemen we de tijd die je auto verdient.\",\"Iedere klant hoort bij de Detail2Go-familie. Dat betekent: eerlijk advies, heldere afspraken vooraf en een resultaat waar we zelf trots op zijn.\"],\"quote\":\"Iedere auto behandelen we alsof het onze eigen is.\",\"whyTitle\":\"Waarom we het doen\",\"whyText\":\"Voor ons is een auto meer dan vervoer. Het is iets waar je trots op bent, waar je in investeert en waar je elke dag in stapt. Dan mag hij er ook zo uitzien. Niets geeft ons meer voldoening dan het moment dat een klant zijn auto terugziet en even stil wordt.\",\"values\":[{\"title\":\"Zorgvuldig\",\"text\":\"Precisie en vakmanschap bij elke behandeling. We zien wat anderen missen, en lossen het op.\"},{\"title\":\"Eerlijk advies\",\"text\":\"We vertellen vooraf wat haalbaar is en wat het kost. Ook als dat betekent dat iets niet nodig is.\"},{\"title\":\"Eén aanspreekpunt.\",\"text\":\"Van een wasbeurt tot een volledig custom project: je regelt alles via ons. Wij denken mee, regelen het en houden je op de hoogte.\"},{\"title\":\"Wij komen ook naar je toe\",\"text\":\"Heeft uw voertuig een wasbeurt nodig maar lukt het niet om langs te komen? Met onze ingerichte bus met watertank en batterij komen wij gewoon bij jou op de oprit of op je werk. Jij verliest geen tijd, met de kwaliteit die je gewend bent van ons!\"}],\"facts\":[{\"value\":\"2\",\"label\":\"oprichters met passie voor auto’s\"},{\"value\":\"Twente\",\"label\":\"Enschede en omstreken\"},{\"value\":\"100%\",\"label\":\"handwerk, geen wasstraat\"},{\"value\":\"Op locatie\",\"label\":\"of in onze eigen werkplaats\"}]}",
+   "updated_at": "2026-10-09 19:04:58"
+  },
+  {
+   "key": "shop",
+   "value": "{\"enabled\":false}",
+   "updated_at": "2026-10-09 19:40:56"
+  }
+ ],
+ "posts": [],
+ "media": [
+  {
+   "id": "m_loybuomlqktw9ar7",
+   "name": "Cobra motorruimte",
+   "alt": "",
+   "width": 1080,
+   "height": 608,
+   "bytes": 151540,
+   "created_at": "2026-10-09 15:16:17"
+  },
+  {
+   "id": "m_ej6rlejxru4iesls",
+   "name": "Cobra zijkant wiel",
+   "alt": "",
+   "width": 1280,
+   "height": 1600,
+   "bytes": 266201,
+   "created_at": "2026-10-09 15:16:17"
+  },
+  {
+   "id": "m_an1j061a0arh3e7m",
+   "name": "Ferrari 296 Novitec",
+   "alt": "",
+   "width": 1080,
+   "height": 1439,
+   "bytes": 282818,
+   "created_at": "2026-10-09 15:16:17"
+  },
+  {
+   "id": "m_nqnh9lk7pr3msc41",
+   "name": "Ferrari interieur",
+   "alt": "",
+   "width": 1440,
+   "height": 810,
+   "bytes": 168997,
+   "created_at": "2026-10-09 15:16:17"
+  },
+  {
+   "id": "m_ciy4nd7wm48sp0cv",
+   "name": "panamera interieur",
+   "alt": "",
+   "width": 1201,
+   "height": 1600,
+   "bytes": 268645,
+   "created_at": "2026-10-09 15:16:17"
+  },
+  {
+   "id": "m_kp660tw9tkdeofl8",
+   "name": "Panamera midden console",
+   "alt": "",
+   "width": 1080,
+   "height": 1439,
+   "bytes": 176437,
+   "created_at": "2026-10-09 15:16:18"
+  },
+  {
+   "id": "m_klz313x2zmjpaiv3",
+   "name": "Panamera",
+   "alt": "",
+   "width": 1200,
+   "height": 1600,
+   "bytes": 326463,
+   "created_at": "2026-10-09 15:16:18"
+  },
+  {
+   "id": "m_ah72z3z9ufhn1p3x",
+   "name": "Range rover interieur",
+   "alt": "",
+   "width": 1080,
+   "height": 722,
+   "bytes": 115706,
+   "created_at": "2026-10-09 15:16:18"
+  },
+  {
+   "id": "m_605vd5beobmubdwt",
+   "name": "Range rover stoel",
+   "alt": "",
+   "width": 1440,
+   "height": 963,
+   "bytes": 175407,
+   "created_at": "2026-10-09 15:16:18"
+  },
+  {
+   "id": "m_y2znn3hls756sckc",
+   "name": "Range rover vooraanzicht perspectief",
+   "alt": "",
+   "width": 1440,
+   "height": 959,
+   "bytes": 180920,
+   "created_at": "2026-10-09 15:16:18"
+  },
+  {
+   "id": "m_hdusjd0vn46y3vnn",
+   "name": "Range rover voorkant",
+   "alt": "",
+   "width": 1080,
+   "height": 721,
+   "bytes": 121264,
+   "created_at": "2026-10-09 15:16:18"
+  },
+  {
+   "id": "m_74z92z5r6fu1tkni",
+   "name": "Range rover zijkant",
+   "alt": "",
+   "width": 1080,
+   "height": 720,
+   "bytes": 97849,
+   "created_at": "2026-10-09 15:16:18"
+  },
+  {
+   "id": "m_3fabkt6jj19qb7ba",
+   "name": "Rsq8 logo foto",
+   "alt": "",
+   "width": 1440,
+   "height": 958,
+   "bytes": 146130,
+   "created_at": "2026-10-09 15:16:18"
+  },
+  {
+   "id": "m_i9oxmeqt5zbvxsly",
+   "name": "Rsq8 wasbox",
+   "alt": "",
+   "width": 1200,
+   "height": 1600,
+   "bytes": 371249,
+   "created_at": "2026-10-09 15:16:19"
+  },
+  {
+   "id": "m_shvldy6gjkl5f8i2",
+   "name": "S klasse voorkant",
+   "alt": "",
+   "width": 1080,
+   "height": 723,
+   "bytes": 205672,
+   "created_at": "2026-10-09 15:16:19"
+  },
+  {
+   "id": "m_wbko16en2buhbp2i",
+   "name": "Voorkant rsq8",
+   "alt": "",
+   "width": 1080,
+   "height": 718,
+   "bytes": 172982,
+   "created_at": "2026-10-09 15:16:19"
+  }
+ ],
+ "team_members": [
+  {
+   "id": 1,
+   "name": "Damiën van der Veen",
+   "role": "Hoofdoprichter Detail2go",
+   "bio": "hoe je met auto’s begon, wat je het mooiste werk vindt en wat je buiten de werkplaats doet. Een lege regel begint een nieuwe alinea. bla bla nbla",
+   "quote": "Een auto is pas mooi als ik hem zou willen overnemen!",
+   "photo": "polijsten-stap-1",
+   "facts": "[{\"label\":\"Droomauto\",\"value\":\"Porsche GT3RS\"},{\"label\":\"minst favoriete werknemer!\",\"value\":\"Stein ;)\"}]",
+   "visible": 1,
+   "sort_order": 0,
+   "created_at": "2026-10-09 15:11:42",
+   "updated_at": "2026-10-09 15:52:53"
+  },
+  {
+   "id": 2,
+   "name": "Stein Veldman",
+   "role": "Minst favoriete werknemer",
+   "bio": "ik doe niet veel nuttig",
+   "quote": "\"waarom mag niemand mij\" -Stein veldman",
+   "photo": "polijsten-stap-2",
+   "facts": "[{\"label\":\"valt op?\",\"value\":\"Mannen\"}]",
+   "visible": 1,
+   "sort_order": 1,
+   "created_at": "2026-10-09 15:12:25",
+   "updated_at": "2026-10-09 15:16:58"
+  },
+  {
+   "id": 3,
+   "name": "Bram Speknek",
+   "role": "hij doet maar wat",
+   "bio": "waggie poetsen leuk...",
+   "quote": "niauwwwww",
+   "photo": "m_ej6rlejxru4iesls",
+   "facts": "[]",
+   "visible": 1,
+   "sort_order": 2,
+   "created_at": "2026-10-09 15:18:21",
+   "updated_at": "2026-10-09 15:18:21"
+  }
+ ]
+}

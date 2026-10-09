@@ -6,9 +6,16 @@ import { Header } from './components/Header';
 import { CartProvider } from './lib/cart';
 import { DEMO } from './lib/demo';
 import Home from './pages/Home';
+import Services from './pages/Services';
+import ServicePage from './pages/Service';
+import Blog, { BlogPost } from './pages/Blog';
+import About from './pages/About';
 import Shop from './pages/Shop';
+import Team from './pages/Team';
 import ProductPage from './pages/Product';
 import NotFound from './pages/NotFound';
+import ShopClosed from './pages/ShopClosed';
+import { SHOP } from '../shared/content';
 
 const Checkout = lazy(() => import('./pages/Checkout'));
 const OrderStatus = lazy(() => import('./pages/OrderStatus'));
@@ -43,7 +50,7 @@ function Layout() {
         </Suspense>
       </main>
       <Footer />
-      <CartDrawer />
+      {SHOP.enabled && <CartDrawer />}
       {DEMO && <DemoBadge />}
     </>
   );
@@ -73,9 +80,15 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Home />} />
-          <Route path="shop" element={<Shop />} />
-          <Route path="shop/:slug" element={<ProductPage />} />
-          <Route path="afrekenen" element={<Checkout />} />
+          <Route path="diensten" element={<Services />} />
+          <Route path="diensten/:slug" element={<ServicePage />} />
+          <Route path="over-ons" element={<About />} />
+          <Route path="blog" element={<Blog />} />
+          <Route path="blog/:slug" element={<BlogPost />} />
+          <Route path="team" element={<Team />} />
+          <Route path="shop" element={SHOP.enabled ? <Shop /> : <ShopClosed />} />
+          <Route path="shop/:slug" element={SHOP.enabled ? <ProductPage /> : <ShopClosed />} />
+          <Route path="afrekenen" element={SHOP.enabled ? <Checkout /> : <ShopClosed />} />
           <Route path="bestelling/:publicId" element={<OrderStatus />} />
           <Route path="afspraak" element={<Booking />} />
           <Route path="contact" element={<Contact />} />
@@ -87,7 +100,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
         <Route
-          path="admin"
+          path="admin/*"
           element={
             <Suspense fallback={null}>
               <Admin />

@@ -1,9 +1,8 @@
-// Product catalog shared by the storefront and the server.
-// The server always recalculates prices from this file, so changing a price
-// here is the only thing needed to change what customers pay.
+// Product catalog shared by the storefront and the server. These are the defaults: products are
+// added and edited in the admin, and the server always recalculates prices from the catalog it holds.
 // All amounts are in euro cents, including 21% BTW.
 
-export type ProductId = 'interior-cleaner' | 'interior-brush' | 'microfiber-towel' | 'interior-kit';
+export type ProductId = string;
 
 export type Product = {
   id: ProductId;
@@ -24,24 +23,26 @@ export type Product = {
   includes?: { productId: ProductId; quantity: number }[];
   badge?: string;
   /**
-   * Product photo, e.g. '/products/interior-cleaner.jpg' (put the file in public/products/).
+   * Product photo: an uploaded image ('m_…') or a path under public/.
    * Square images on a light background work best. Without a photo an illustration is shown.
    */
   image?: string;
   /** Set to false to show the product as sold out. */
   inStock: boolean;
+  /** Hidden products are not shown or sold, but old orders keep their details. */
+  hidden?: boolean;
 };
 
 export const PRODUCTS: Product[] = [
   {
     id: 'interior-kit',
     slug: 'interior-care-kit',
-    sku: 'LUM-KIT-01',
+    sku: 'D2G-KIT-01',
     name: 'Interior Care Kit',
     category: 'Set',
     tagline: 'Cleaner, borstel en doek — alles voor een strak interieur.',
     description: [
-      'Dezelfde drie producten die wij dagelijks in de studio gebruiken, samen in één set. Spuit, borstel los, neem af: klaar.',
+      'Dezelfde drie producten die wij dagelijks bij onze klanten gebruiken, samen in één set. Spuit, borstel los, neem af: klaar.',
       'De set is samengesteld voor het onderhoud tussen twee professionele behandelingen in, maar werkt net zo goed als startpakket voor wie zelf het interieur wil verzorgen.',
     ],
     price: 2995,
@@ -51,7 +52,7 @@ export const PRODUCTS: Product[] = [
     specs: [
       { label: 'Inhoud', value: 'Cleaner 500 ml, borstel, microvezel doek' },
       { label: 'Geschikt voor', value: 'Kunststof, vinyl, rubber, stof en leer' },
-      { label: 'Artikelnummer', value: 'LUM-KIT-01' },
+      { label: 'Artikelnummer', value: 'D2G-KIT-01' },
     ],
     usage: [
       'Spuit de cleaner op de borstel of direct op het oppervlak.',
@@ -69,7 +70,7 @@ export const PRODUCTS: Product[] = [
   {
     id: 'interior-cleaner',
     slug: 'interior-cleaner',
-    sku: 'LUM-IC-500',
+    sku: 'D2G-IC-500',
     name: 'Interior Cleaner',
     category: 'Reiniger',
     tagline: 'Reinigt dashboard, deurpanelen en bekleding zonder glans of vettig laagje.',
@@ -84,7 +85,7 @@ export const PRODUCTS: Product[] = [
       { label: 'Inhoud', value: '500 ml spuitflacon' },
       { label: 'Geschikt voor', value: 'Kunststof, vinyl, rubber, stof en leer' },
       { label: 'Afwerking', value: 'Mat, geen glans' },
-      { label: 'Artikelnummer', value: 'LUM-IC-500' },
+      { label: 'Artikelnummer', value: 'D2G-IC-500' },
     ],
     usage: [
       'Goed schudden voor gebruik.',
@@ -97,7 +98,7 @@ export const PRODUCTS: Product[] = [
   {
     id: 'interior-brush',
     slug: 'interior-detailing-brush',
-    sku: 'LUM-BR-01',
+    sku: 'D2G-BR-01',
     name: 'Interior Detailing Brush',
     category: 'Borstel',
     tagline: 'Zachte haren voor naden, knoppen en ventilatieroosters.',
@@ -112,7 +113,7 @@ export const PRODUCTS: Product[] = [
       { label: 'Haren', value: 'Zacht synthetisch' },
       { label: 'Gebruik', value: 'Dashboard, roosters, naden, leer' },
       { label: 'Onderhoud', value: 'Uitspoelen met lauw water, laten drogen' },
-      { label: 'Artikelnummer', value: 'LUM-BR-01' },
+      { label: 'Artikelnummer', value: 'D2G-BR-01' },
     ],
     usage: [
       'Spuit Interior Cleaner op de haren.',
@@ -125,7 +126,7 @@ export const PRODUCTS: Product[] = [
   {
     id: 'microfiber-towel',
     slug: 'microvezel-doek',
-    sku: 'LUM-MF-40',
+    sku: 'D2G-MF-40',
     name: 'Microvezel doek',
     category: 'Doek',
     tagline: 'Randloze doek die vuil opneemt in plaats van het rond te duwen.',
@@ -140,7 +141,7 @@ export const PRODUCTS: Product[] = [
       { label: 'Afmeting', value: '40 × 40 cm' },
       { label: 'Rand', value: 'Randloos (lasergesneden)' },
       { label: 'Wassen', value: 'Max. 40 °C, zonder wasverzachter' },
-      { label: 'Artikelnummer', value: 'LUM-MF-40' },
+      { label: 'Artikelnummer', value: 'D2G-MF-40' },
     ],
     usage: [
       'Vouw de doek in vieren voor acht schone werkvlakken.',
@@ -151,12 +152,20 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
-export const BUNDLE_ID: ProductId = 'interior-kit';
-
 export function getProduct(id: string): Product | undefined {
-  return PRODUCTS.find((p) => p.id === id);
+  return PRODUCTS.find((p) => p.id === id && !p.hidden);
 }
 
 export function getProductBySlug(slug: string): Product | undefined {
-  return PRODUCTS.find((p) => p.slug === slug);
+  return PRODUCTS.find((p) => p.slug === slug && !p.hidden);
+}
+
+/** Products shown in the shop, in the order set in the admin. */
+export function listedProducts(): Product[] {
+  return PRODUCTS.filter((p) => !p.hidden);
+}
+
+/** The set promoted in the shop and cart: the first visible product that bundles others. */
+export function getBundle(): Product | undefined {
+  return PRODUCTS.find((p) => !p.hidden && p.includes?.length && p.includes.every((i) => getProduct(i.productId)));
 }

@@ -1,7 +1,16 @@
-import { Lock } from 'lucide-react';
+import { Lock, MapPin, Store, Truck } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { COUNTRIES, formatPrice, SHIPPING, type Country } from '../../shared/pricing';
+import {
+  availableMethods,
+  deliveryCountries,
+  formatPrice,
+  PICKUP,
+  pickupLocation,
+  SHIPPING,
+  type Country,
+  type ShippingMethod,
+} from '../../shared/pricing';
 import { SITE } from '../../shared/site';
 import { FreeShippingMeter } from '../components/CartDrawer';
 import { ProductImage } from '../components/ProductArt';
@@ -22,7 +31,7 @@ type Form = {
   notes: string;
 };
 
-const DRAFT_KEY = 'lumen.checkout.v1';
+const DRAFT_KEY = 'detail2go.checkout.v1';
 const EMPTY: Form = { email: '', name: '', phone: '', street: '', houseNumber: '', postalCode: '', city: '', notes: '' };
 
 function loadDraft(): Form {
@@ -37,7 +46,15 @@ export default function Checkout() {
   usePageMeta('Afrekenen', undefined, { noindex: true });
   const cart = useCart();
   const navigate = useNavigate();
-  const { totals, country } = cart;
+  const { totals, country, method } = cart;
+  const methods = availableMethods();
+  const countries = deliveryCountries();
+
+  // Settings can change in the admin; never keep a choice that is no longer offered.
+  useEffect(() => {
+    if (methods.length && !methods.includes(method)) cart.setMethod(methods[0]);
+    if (countries.length && !countries.includes(country)) cart.setCountry(countries[0]);
+  }, [methods, countries, method, country, cart]);
   const [form, setForm] = useState<Form>(loadDraft);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -78,7 +95,7 @@ export default function Checkout() {
     setFormError(undefined);
     try {
       const { checkoutUrl } = await api<{ checkoutUrl: string }>('/orders', {
-        body: { items: cart.items, customer: { ...form, country }, acceptTerms },
+        body: { items: cart.items, shippingMethod: method, customer: { ...form, country }, acceptTerms },
       });
       goToPayment(checkoutUrl, navigate);
     } catch (err) {
@@ -129,36 +146,79 @@ export default function Checkout() {
               <Input label="E-mailadres" type="email" autoComplete="email" required hint="Hier sturen we de orderbevestiging naartoe" {...field('email')} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input label="Volledige naam" autoComplete="name" required {...field('name')} />
-                <Input label="Telefoonnummer" type="tel" autoComplete="tel" optional hint="Alleen voor vragen over de bezorging" {...field('phone')} />
+                <Input
+                  label="Telefoonnummer"
+                  type="tel"
+                  autoComplete="tel"
+                  optional
+                  hint={method === 'pickup' ? 'Handig om af te stemmen wanneer je langskomt' : 'Alleen voor vragen over de bezorging'}
+                  {...field('phone')}
+                />
               </div>
             </fieldset>
 
             <fieldset className="space-y-4">
-              <legend className="eyebrow mb-4 text-stone-dark">2 · Bezorgadres</legend>
-              <Select
-                label="Land"
-                value={country}
-                autoComplete="country"
-                onChange={(e) => cart.setCountry(e.target.value as Country)}
-              >
-                {COUNTRIES.map((c) => (
-                  <option key={c} value={c}>
-                    {SHIPPING[c].label}
-                  </option>
-                ))}
-              </Select>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                <div className="col-span-2 sm:col-span-1">
-                  <Input label="Postcode" autoComplete="postal-code" required placeholder={postalHint} {...field('postalCode')} />
+              <legend className="eyebrow mb-4 text-stone-dark">2 · Bezorgen of afhalen</legend>
+              {methods.length > 1 && (
+                <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Hoe wil je je bestelling ontvangen?">
+                  <MethodOption
+                    value="delivery"
+                    current={method}
+                    onSelect={cart.setMethod}
+                    icon={<Truck className="h-5 w-5" strokeWidth={1.5} aria-hidden />}
+                    title="Bezorgen"
+                    text={`Met ${SITE.carrier}, binnen ${SITE.dispatchDays} verzonden`}
+                    price={deliveryPriceText(country, totals.subtotal)}
+                  />
+                  <MethodOption
+                    value="pickup"
+                    current={method}
+                    onSelect={cart.setMethod}
+                    icon={<Store className="h-5 w-5" strokeWidth={1.5} aria-hidden />}
+                    title={`Afhalen in ${SITE.address.city}`}
+                    text={PICKUP.readyTime}
+                    price={PICKUP.cost === 0 ? 'Gratis' : formatPrice(PICKUP.cost)}
+                  />
                 </div>
-                <div className="col-span-2">
-                  <Input label="Huisnummer + toevoeging" autoComplete="address-line2" required {...field('houseNumber')} />
+              )}
+
+              {method === 'pickup' ? (
+                <div className="flex gap-4 border border-paper-3 bg-white p-5">
+                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-accent-strong" aria-hidden />
+                  <div className="text-[15px] leading-relaxed">
+                    <p className="font-medium">Afhaaladres</p>
+                    <p>{pickupLocation()}</p>
+                    {PICKUP.readyTime && <p className="mt-2 text-stone-dark">{PICKUP.readyTime}.</p>}
+                    {PICKUP.instructions && <p className="mt-2 text-stone-dark">{PICKUP.instructions}</p>}
+                  </div>
                 </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input label="Straat" autoComplete="address-line1" required {...field('street')} />
-                <Input label="Plaats" autoComplete="address-level2" required {...field('city')} />
-              </div>
+              ) : (
+                <>
+                  {countries.length > 1 ? (
+                    <Select label="Land" value={country} autoComplete="country" onChange={(e) => cart.setCountry(e.target.value as Country)}>
+                      {countries.map((c) => (
+                        <option key={c} value={c}>
+                          {SHIPPING[c].label}
+                        </option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <p className="text-sm text-stone-dark">We bezorgen in {SHIPPING[country].label}.</p>
+                  )}
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                    <div className="col-span-2 sm:col-span-1">
+                      <Input label="Postcode" autoComplete="postal-code" required placeholder={postalHint} {...field('postalCode')} />
+                    </div>
+                    <div className="col-span-2">
+                      <Input label="Huisnummer + toevoeging" autoComplete="address-line2" required {...field('houseNumber')} />
+                    </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Input label="Straat" autoComplete="address-line1" required {...field('street')} />
+                    <Input label="Plaats" autoComplete="address-level2" required {...field('city')} />
+                  </div>
+                </>
+              )}
               <Textarea label="Opmerking bij je bestelling" optional rows={3} maxLength={500} {...field('notes')} />
             </fieldset>
           </div>
@@ -181,9 +241,11 @@ export default function Checkout() {
                 ))}
               </ul>
 
-              <div className="mt-4 border-t border-ink/10 pt-4">
-                <FreeShippingMeter remaining={totals.freeShippingRemaining} threshold={SHIPPING[country].freeFrom} />
-              </div>
+              {method === 'delivery' && SHIPPING[country].freeFrom !== null && (
+                <div className="mt-4 border-t border-ink/10 pt-4">
+                  <FreeShippingMeter remaining={totals.freeShippingRemaining} threshold={SHIPPING[country].freeFrom!} />
+                </div>
+              )}
 
               <dl className="tabular mt-5 space-y-2 border-t border-ink/10 pt-4 text-[15px]">
                 <div className="flex justify-between">
@@ -191,7 +253,7 @@ export default function Checkout() {
                   <dd>{formatPrice(totals.subtotal)}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt>Verzending naar {SHIPPING[country].label}</dt>
+                  <dt>{method === 'pickup' ? `Afhalen in ${SITE.address.city}` : `Verzending naar ${SHIPPING[country].label}`}</dt>
                   <dd>{totals.shipping === 0 ? 'Gratis' : formatPrice(totals.shipping)}</dd>
                 </div>
                 <div className="flex justify-between border-t border-ink/10 pt-3 text-lg font-semibold">
@@ -227,7 +289,7 @@ export default function Checkout() {
                   gelezen.
                 </span>
               </label>
-              {errors.acceptTerms && <p className="mt-2 text-sm text-accent-strong">{errors.acceptTerms}</p>}
+              {errors.acceptTerms && <p className="mt-2 text-sm text-danger">{errors.acceptTerms}</p>}
 
               <Button type="submit" variant="accent" className="mt-6 w-full" disabled={submitting || paymentMode === 'off'}>
                 <Lock className="h-4 w-4" aria-hidden />
@@ -241,5 +303,48 @@ export default function Checkout() {
         </form>
       </div>
     </div>
+  );
+}
+
+function deliveryPriceText(country: Country, subtotal: number) {
+  const rule = SHIPPING[country];
+  if (rule.freeFrom !== null && subtotal >= rule.freeFrom) return 'Gratis';
+  if (rule.cost === 0) return 'Gratis';
+  return rule.freeFrom !== null ? `${formatPrice(rule.cost)} · gratis vanaf ${formatPrice(rule.freeFrom)}` : formatPrice(rule.cost);
+}
+
+function MethodOption({
+  value,
+  current,
+  onSelect,
+  icon,
+  title,
+  text,
+  price,
+}: {
+  value: ShippingMethod;
+  current: ShippingMethod;
+  onSelect: (m: ShippingMethod) => void;
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+  price: string;
+}) {
+  const selected = value === current;
+  return (
+    <label className={`flex cursor-pointer gap-3 border bg-white p-4 transition-colors ${selected ? 'border-ink ring-1 ring-ink' : 'border-paper-3 hover:border-ink/40'}`}>
+      <input type="radio" name="shippingMethod" value={value} checked={selected} onChange={() => onSelect(value)} className="sr-only" />
+      <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border ${selected ? 'border-ink' : 'border-ink/30'}`} aria-hidden>
+        {selected && <span className="h-2.5 w-2.5 rounded-full bg-ink" />}
+      </span>
+      <span className="flex-1">
+        <span className="flex items-center gap-2 font-medium">
+          {icon}
+          {title}
+        </span>
+        <span className="mt-1 block text-sm text-stone-dark">{text}</span>
+        <span className="tabular mt-2 block text-sm font-medium">{price}</span>
+      </span>
+    </label>
   );
 }

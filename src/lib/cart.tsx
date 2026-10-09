@@ -1,8 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { BUNDLE_ID, getProduct, type ProductId } from '../../shared/catalog';
-import { MAX_QUANTITY_PER_LINE, priceCart, type CartItem, type Country, type Totals } from '../../shared/pricing';
+import { getBundle, getProduct, type ProductId } from '../../shared/catalog';
+import {
+  availableMethods,
+  deliveryCountries,
+  MAX_QUANTITY_PER_LINE,
+  priceCart,
+  type CartItem,
+  type Country,
+  type ShippingMethod,
+  type Totals,
+} from '../../shared/pricing';
 
-const STORAGE_KEY = 'lumen.cart.v1';
+const STORAGE_KEY = 'detail2go.cart.v1';
 
 type CartContextValue = {
   items: CartItem[];
@@ -10,6 +19,9 @@ type CartContextValue = {
   totals: Totals;
   country: Country;
   setCountry: (country: Country) => void;
+  /** Delivery or pickup, as chosen at checkout. */
+  method: ShippingMethod;
+  setMethod: (method: ShippingMethod) => void;
   add: (productId: ProductId, quantity?: number) => void;
   setQuantity: (productId: string, quantity: number) => void;
   remove: (productId: string) => void;
@@ -42,7 +54,8 @@ function load(): CartItem[] {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(load);
-  const [country, setCountry] = useState<Country>('NL');
+  const [country, setCountry] = useState<Country>(() => deliveryCountries()[0] ?? 'NL');
+  const [method, setMethod] = useState<ShippingMethod>(() => availableMethods()[0] ?? 'delivery');
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -76,12 +89,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setIsOpen(true);
   }, []);
 
-  const bundle = getProduct(BUNDLE_ID)!;
-  const bundleSwapAvailable = bundle.includes!.every((inc) =>
-    items.some((i) => i.productId === inc.productId && i.quantity >= inc.quantity),
+  const bundle = getBundle();
+  const bundleSwapAvailable = Boolean(
+    bundle?.inStock && bundle.includes!.every((inc) => items.some((i) => i.productId === inc.productId && i.quantity >= inc.quantity)),
   );
 
   const swapForBundle = useCallback(() => {
+    if (!bundle) return;
+    const bundleId = bundle.id;
     setItems((current) => {
       let next = current
         .map((i) => {
@@ -89,10 +104,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
           return inc ? { ...i, quantity: i.quantity - inc.quantity } : i;
         })
         .filter((i) => i.quantity > 0);
-      const existing = next.find((i) => i.productId === BUNDLE_ID);
+      const existing = next.find((i) => i.productId === bundleId);
       next = existing
-        ? next.map((i) => (i.productId === BUNDLE_ID ? { ...i, quantity: i.quantity + 1 } : i))
-        : [{ productId: BUNDLE_ID, quantity: 1 }, ...next];
+        ? next.map((i) => (i.productId === bundleId ? { ...i, quantity: i.quantity + 1 } : i))
+        : [{ productId: bundleId, quantity: 1 }, ...next];
       return next;
     });
   }, [bundle]);
@@ -100,9 +115,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value = useMemo<CartContextValue>(() => {
     let totals: Totals;
     try {
-      totals = priceCart(items, country);
+      totals = priceCart(items, country, method);
     } catch {
-      totals = priceCart([], country);
+      totals = priceCart([], country, method);
     }
     return {
       items,
@@ -110,6 +125,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       totals,
       country,
       setCountry,
+      method,
+      setMethod,
       add,
       setQuantity,
       remove: (productId) => setQuantity(productId, 0),
@@ -120,7 +137,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       open: () => setIsOpen(true),
       close: () => setIsOpen(false),
     };
-  }, [items, country, add, setQuantity, swapForBundle, bundleSwapAvailable, isOpen]);
+  }, [items, country, method, add, setQuantity, swapForBundle, bundleSwapAvailable, isOpen]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

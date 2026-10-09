@@ -1,11 +1,48 @@
 import { X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { BUNDLE_ID, getProduct, type ProductId } from '../../shared/catalog';
-import { formatPrice, SHIPPING } from '../../shared/pricing';
+import { getBundle, getProduct, type Product } from '../../shared/catalog';
+import { availableMethods, formatPrice, PICKUP, SHIPPING } from '../../shared/pricing';
+import { SITE } from '../../shared/site';
 import { useCart } from '../lib/cart';
 import { ProductImage } from './ProductArt';
 import { Button, ButtonLink, QuantityStepper } from './ui';
+
+/** Free-shipping progress, or the pickup choice, with a one-click switch between the two. */
+export function ShippingChoice() {
+  const { method, setMethod, country, totals } = useCart();
+  const methods = availableMethods();
+  const canSwitch = methods.length > 1;
+  const pickupPrice = PICKUP.cost === 0 ? 'gratis' : formatPrice(PICKUP.cost);
+  const switchLink = (label: string, to: 'delivery' | 'pickup') =>
+    canSwitch && (
+      <button type="button" onClick={() => setMethod(to)} className="mt-2 text-sm text-stone-dark underline underline-offset-2 hover:text-ink">
+        {label}
+      </button>
+    );
+
+  if (method === 'pickup') {
+    return (
+      <div>
+        <p className="text-sm">
+          <strong>Afhalen in {SITE.address.city}</strong> · {pickupPrice}
+        </p>
+        {switchLink('Toch liever laten bezorgen?', 'delivery')}
+      </div>
+    );
+  }
+  const threshold = SHIPPING[country].freeFrom;
+  return (
+    <div>
+      {threshold !== null ? (
+        <FreeShippingMeter remaining={totals.freeShippingRemaining} threshold={threshold} />
+      ) : (
+        <p className="text-sm">Bezorgen met {SITE.carrier}</p>
+      )}
+      {switchLink(`Of haal je bestelling ${pickupPrice} af in ${SITE.address.city}`, 'pickup')}
+    </div>
+  );
+}
 
 export function FreeShippingMeter({ remaining, threshold }: { remaining: number; threshold: number }) {
   const progress = Math.min(1, (threshold - remaining) / threshold);
@@ -32,7 +69,7 @@ export function CartDrawer() {
   const { isOpen, close, totals } = cart;
   const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
-  const bundle = getProduct(BUNDLE_ID)!;
+  const bundle = getBundle();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -75,7 +112,7 @@ export function CartDrawer() {
         aria-modal="true"
         aria-label="Winkelwagen"
         tabIndex={-1}
-        className={`absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-paper text-ink shadow-2xl outline-none transition-transform duration-[350ms] ease-out-quart ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-paper text-ink outline-none transition-transform duration-[350ms] ease-out-quart ${isOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full'}`}
       >
         <div className="flex h-16 items-center justify-between border-b border-ink/10 px-5 md:h-[72px]">
           <h2 className="font-display text-xl">
@@ -96,7 +133,7 @@ export function CartDrawer() {
         ) : (
           <>
             <div className="border-b border-ink/10 px-5 py-4">
-              <FreeShippingMeter remaining={totals.freeShippingRemaining} threshold={SHIPPING[cart.country].freeFrom} />
+              <ShippingChoice />
             </div>
 
             <ul className="flex-1 divide-y divide-ink/10 overflow-y-auto px-5">
@@ -135,11 +172,11 @@ export function CartDrawer() {
               ))}
             </ul>
 
-            {cart.bundleSwapAvailable && (
+            {bundle && cart.bundleSwapAvailable && (
               <div className="mx-5 mb-4 flex items-center justify-between gap-4 border border-accent/40 bg-white px-4 py-3">
                 <p className="text-sm">
-                  Je hebt alle losse onderdelen van de <strong>{bundle.name}</strong>. Bespaar{' '}
-                  {formatPrice(bundle.compareAtPrice! - bundle.price)} met de set.
+                  Je hebt alle losse onderdelen van de <strong>{bundle.name}</strong>.
+                  {bundle.compareAtPrice && bundle.compareAtPrice > bundle.price && <> Bespaar {formatPrice(bundle.compareAtPrice - bundle.price)} met de set.</>}
                 </p>
                 <button
                   type="button"
@@ -151,8 +188,8 @@ export function CartDrawer() {
               </div>
             )}
 
-            {!cart.items.some((i) => i.productId === BUNDLE_ID) && !cart.bundleSwapAvailable && (
-              <UpsellBundle onNavigate={close} />
+            {bundle?.inStock && !cart.items.some((i) => i.productId === bundle.id) && !cart.bundleSwapAvailable && (
+              <UpsellBundle bundle={bundle} onNavigate={close} />
             )}
 
             <div className="border-t border-ink/10 bg-paper-2/60 px-5 pb-5 pt-4">
@@ -162,7 +199,7 @@ export function CartDrawer() {
                   <dd>{formatPrice(totals.subtotal)}</dd>
                 </div>
                 <div className="flex justify-between text-stone-dark">
-                  <dt>Verzending ({SHIPPING[cart.country].label})</dt>
+                  <dt>{cart.method === 'pickup' ? 'Afhalen' : `Verzending (${SHIPPING[cart.country].label})`}</dt>
                   <dd>{totals.shipping === 0 ? 'Gratis' : formatPrice(totals.shipping)}</dd>
                 </div>
                 <div className="flex justify-between pt-2 text-base font-semibold">
@@ -190,18 +227,18 @@ export function CartDrawer() {
   );
 }
 
-function UpsellBundle({ onNavigate }: { onNavigate: () => void }) {
+function UpsellBundle({ bundle, onNavigate }: { bundle: Product; onNavigate: () => void }) {
   const { add } = useCart();
-  const bundle = getProduct(BUNDLE_ID)!;
   return (
     <div className="mx-5 mb-4 flex items-center gap-4 border border-ink/10 bg-white p-3">
       <Link to={`/shop/${bundle.slug}`} onClick={onNavigate} className="w-14 shrink-0">
-        <ProductImage productId={bundle.id as ProductId} />
+        <ProductImage productId={bundle.id} />
       </Link>
       <div className="min-w-0 flex-1 text-sm">
         <p className="font-medium">{bundle.name}</p>
         <p className="text-stone-dark">
-          {formatPrice(bundle.price)} · {bundle.badge}
+          {formatPrice(bundle.price)}
+          {bundle.badge && ` · ${bundle.badge}`}
         </p>
       </div>
       <button

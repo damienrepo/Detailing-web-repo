@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { formatPrice, SHIPPING } from '../../shared/pricing';
-import { SITE } from '../../shared/site';
+import { deliveryCountries, formatPrice, PICKUP, pickupLocation, SHIPPING } from '../../shared/pricing';
+import { formatAddress, SITE } from '../../shared/site';
 import { Eyebrow } from '../components/ui';
 import { usePageMeta } from '../lib/meta';
 
@@ -12,40 +12,58 @@ type PageId = 'voorwaarden' | 'privacy' | 'retourneren' | 'verzending';
 
 const UPDATED = '7 oktober 2026';
 
-const company = `${SITE.legalName}, ${SITE.address.street}, ${SITE.address.postalCode} ${SITE.address.city}, KvK ${SITE.kvk}, btw-nummer ${SITE.vatNumber}`;
+/** A function, so details edited in the admin are used. */
+const companyLine = () => `${SITE.legalName}, ${formatAddress()}, KvK ${SITE.kvk}, btw-nummer ${SITE.vatNumber}`;
 
 const PAGES: Record<PageId, { title: string; description: string; body: () => ReactNode }> = {
   verzending: {
     title: 'Verzending & betalen',
-    description: 'Verzendkosten, levertijden en betaalmethoden van de webshop.',
+    description: 'Verzendkosten, levertijden, afhalen en betaalmethoden van de webshop.',
     body: () => (
       <>
-        <H2>Levertijd</H2>
-        <P>
-          Bestellingen die op een werkdag zijn betaald, geven we binnen {SITE.dispatchDays} af bij {SITE.carrier}. Binnen
-          Nederland wordt een pakket meestal de werkdag daarna bezorgd, naar België binnen 1–3 werkdagen. Zodra je pakket
-          onderweg is, ontvang je een e-mail met een track-and-trace code.
-        </P>
-        <H2>Verzendkosten</H2>
-        <table className="tabular my-6 w-full border-collapse text-left text-[15px]">
-          <thead>
-            <tr className="border-b border-ink/20">
-              <th className="py-2 font-medium">Land</th>
-              <th className="py-2 font-medium">Verzendkosten</th>
-              <th className="py-2 font-medium">Gratis vanaf</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.values(SHIPPING).map((s) => (
-              <tr key={s.label} className="border-b border-ink/10">
-                <td className="py-2">{s.label}</td>
-                <td className="py-2">{formatPrice(s.cost)}</td>
-                <td className="py-2">{formatPrice(s.freeFrom)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <P>We verzenden op dit moment alleen naar Nederland en België. Alle prijzen zijn inclusief 21% btw.</P>
+        {deliveryCountries().length > 0 && (
+          <>
+            <H2>Levertijd</H2>
+            <P>
+              Bestellingen die op een werkdag zijn betaald, geven we binnen {SITE.dispatchDays} af bij {SITE.carrier}. Binnen
+              Nederland wordt een pakket meestal de werkdag daarna bezorgd, naar België binnen 1–3 werkdagen. Zodra je pakket
+              onderweg is, ontvang je een e-mail met een track-and-trace code.
+            </P>
+            <H2>Verzendkosten</H2>
+            <table className="tabular my-6 w-full border-collapse text-left text-[15px]">
+              <thead>
+                <tr className="border-b border-ink/20">
+                  <th className="py-2 font-medium">Land</th>
+                  <th className="py-2 font-medium">Verzendkosten</th>
+                  <th className="py-2 font-medium">Gratis vanaf</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deliveryCountries().map((c) => (
+                  <tr key={c} className="border-b border-ink/10">
+                    <td className="py-2">{SHIPPING[c].label}</td>
+                    <td className="py-2">{SHIPPING[c].cost === 0 ? 'Gratis' : formatPrice(SHIPPING[c].cost)}</td>
+                    <td className="py-2">{SHIPPING[c].freeFrom === null ? '—' : formatPrice(SHIPPING[c].freeFrom)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <P>
+              We verzenden op dit moment naar {deliveryCountries().map((c) => SHIPPING[c].label).join(' en ')}. Alle prijzen zijn
+              inclusief 21% btw.
+            </P>
+          </>
+        )}
+        {PICKUP.enabled && (
+          <>
+            <H2>Afhalen</H2>
+            <P>
+              Je kunt je bestelling ook {PICKUP.cost === 0 ? 'gratis' : `voor ${formatPrice(PICKUP.cost)}`} afhalen op{' '}
+              {pickupLocation()}. Kies bij het afrekenen voor ‘Afhalen’. {PICKUP.readyTime}; je ontvangt een e-mail zodra je
+              bestelling klaarligt. {PICKUP.instructions}
+            </P>
+          </>
+        )}
         <H2>Betalen</H2>
         <P>
           Je betaalt vooraf en veilig via onze betaalpartner Mollie. Afhankelijk van je land kun je kiezen uit onder meer
@@ -76,8 +94,8 @@ const PAGES: Record<PageId, { title: string; description: string; body: () => Re
             modelformulier hieronder.
           </li>
           <li>
-            Stuur het product binnen {SITE.returnDays} dagen na je melding terug naar {SITE.address.street},{' '}
-            {SITE.address.postalCode} {SITE.address.city}. De kosten voor het terugsturen zijn voor jou.
+            Stuur het product binnen {SITE.returnDays} dagen na je melding terug naar{' '}
+            {SITE.address.street ? formatAddress() : 'het adres dat je van ons per e-mail ontvangt'}. De kosten voor het terugsturen zijn voor jou.
           </li>
           <li>
             We betalen het aankoopbedrag, inclusief de oorspronkelijke verzendkosten, binnen 14 dagen na je melding terug.
@@ -93,7 +111,7 @@ const PAGES: Record<PageId, { title: string; description: string; body: () => Re
         <H2>Modelformulier voor herroeping</H2>
         <div className="my-6 border border-ink/15 bg-white p-6 text-[15px] leading-relaxed">
           <p>
-            Aan: {company}, {SITE.email}
+            Aan: {companyLine()}, {SITE.email}
           </p>
           <p className="mt-4">
             Ik deel u hierbij mede dat ik onze overeenkomst betreffende de verkoop van de volgende producten herroep:
@@ -119,17 +137,17 @@ const PAGES: Record<PageId, { title: string; description: string; body: () => Re
 
   voorwaarden: {
     title: 'Algemene voorwaarden',
-    description: 'Algemene voorwaarden voor de webshop en voor behandelingen in de studio.',
+    description: 'Algemene voorwaarden voor de webshop en voor behandelingen op locatie of in onze werkplaats.',
     body: () => (
       <>
         <H2>1. Wie wij zijn</H2>
         <P>
-          Deze voorwaarden zijn van {company}. Je bereikt ons via {SITE.phone} of <Mail />.
+          Deze voorwaarden zijn van {companyLine()}. Je bereikt ons via {SITE.phone} of <Mail />.
         </P>
         <H2>2. Toepasselijkheid</H2>
         <P>
           Deze voorwaarden gelden voor ieder aanbod van ons en voor iedere overeenkomst die je met ons sluit, zowel voor
-          bestellingen in de webshop (deel A) als voor behandelingen in de studio (deel B). Voordat je een bestelling
+          bestellingen in de webshop (deel A) als voor behandelingen op locatie of in onze werkplaats (deel B). Voordat je een bestelling
           plaatst, stellen we deze voorwaarden beschikbaar; je kunt ze opslaan of printen.
         </P>
 
@@ -164,7 +182,7 @@ const PAGES: Record<PageId, { title: string; description: string; body: () => Re
           eerst op een onopvallende plek.
         </P>
 
-        <H2>Deel B — Behandelingen in de studio</H2>
+        <H2>Deel B — Behandelingen</H2>
         <H3>B1. Aanvraag en afspraak</H3>
         <P>
           Een aanvraag via de website is vrijblijvend. Een afspraak staat pas vast nadat wij datum en prijs hebben bevestigd.
@@ -182,8 +200,17 @@ const PAGES: Record<PageId, { title: string; description: string; body: () => Re
           overgespoten delen, leggen we bij de inspectie samen met je vast. Bij lakcorrectie verwijderen we zo min mogelijk
           blanke lak; krassen die door de blanke lak heen gaan, zijn niet altijd volledig te verwijderen.
         </P>
-        <H3>B4. Betaling</H3>
-        <P>Behandelingen betaal je bij het ophalen van de auto, tenzij we schriftelijk iets anders afspreken.</P>
+        <H3>B4. Behandelingen op locatie</H3>
+        <P>
+          Voeren we de behandeling bij jou uit, dan zorg je voor een bereikbare stroom- en wateraansluiting en voldoende
+          ruimte rondom de auto. Is dat er bij aankomst niet en kunnen we daardoor niet beginnen, dan plannen we in overleg
+          een nieuwe afspraak.
+        </P>
+        <H3>B5. Betaling</H3>
+        <P>
+          Behandelingen betaal je achteraf, nadat we het resultaat samen hebben nagelopen, tenzij we schriftelijk iets anders
+          afspreken.
+        </P>
 
         <H2>3. Klachten</H2>
         <P>
@@ -202,7 +229,7 @@ const PAGES: Record<PageId, { title: string; description: string; body: () => Re
     body: () => (
       <>
         <P>
-          {company} is verantwoordelijk voor de verwerking van je persoonsgegevens zoals beschreven in dit privacybeleid.
+          {companyLine()} is verantwoordelijk voor de verwerking van je persoonsgegevens zoals beschreven in dit privacybeleid.
           Vragen? Mail naar <Mail />.
         </P>
         <H2>Welke gegevens en waarom</H2>

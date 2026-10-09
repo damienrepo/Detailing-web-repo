@@ -1,15 +1,19 @@
 // In-browser stand-in for the Express API, used only by the demo build.
 // Mirrors the server's routes closely enough to click through every flow; data lives in
 // this browser's localStorage. Nothing is ordered, paid or e-mailed.
-import { priceCart, PricingError } from '../../shared/pricing';
+import { assertShippingAvailable, priceCart, PricingError } from '../../shared/pricing';
 import { bookingSchema, bookingStatusSchema, checkoutSchema, fieldErrors, shipSchema } from '../../shared/validation';
 import type { Order, OrderStatus, PublicOrder } from '../../server/orders';
+import { PRODUCTS } from '../../shared/catalog';
+import { ABOUT, SHOP, BUILTIN_IMAGES, HOME, serviceEdit, shippingEdit, siteEdit } from '../../shared/content';
+import { SERVICES } from '../../shared/services';
+import { SITE } from '../../shared/site';
 import { ApiError } from './api';
 
 type Booking = { id: number; status: string; created_at: string; [key: string]: unknown };
 type State = { orders: (Order & { payment: 'open' | 'paid' | 'failed' })[]; bookings: Booking[] };
 
-const KEY = 'lumen.demo.v1';
+const KEY = 'detail2go.demo.v1';
 let memory: State = { orders: [], bookings: [] };
 
 function load(): State {
@@ -37,6 +41,7 @@ function toPublic(o: Order): PublicOrder {
   return {
     number: o.number,
     status: o.status,
+    shippingMethod: o.shipping_method,
     name: o.name,
     email: o.email,
     address: { street: o.street, houseNumber: o.house_number, postalCode: o.postal_code, city: o.city, country: o.country },
@@ -78,7 +83,8 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
     if (!parsed.success) throw new ApiError('Controleer de ingevulde gegevens.', 400, fieldErrors(parsed.error));
     let totals;
     try {
-      totals = priceCart(parsed.data.items, parsed.data.customer.country);
+      assertShippingAvailable(parsed.data.shippingMethod, parsed.data.customer.country);
+      totals = priceCart(parsed.data.items, parsed.data.customer.country, parsed.data.shippingMethod);
     } catch (err) {
       throw new ApiError(err instanceof PricingError ? err.message : 'Er ging iets mis.', 400);
     }
@@ -88,8 +94,9 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
     state.orders.push({
       id,
       public_id: publicId,
-      number: `LU-${1000 + id}`,
+      number: `D2G-${1000 + id}`,
       status: 'open',
+      shipping_method: parsed.data.shippingMethod,
       payment: 'open',
       email: c.email,
       name: c.name,
@@ -110,6 +117,8 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
       created_at: now(),
       paid_at: null,
       shipped_at: null,
+      ready_at: null,
+      collected_at: null,
       items: totals.lines.map((l) => ({
         product_id: l.product.id,
         sku: l.product.sku,
@@ -168,10 +177,15 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
   if (path === '/admin/orders') return [...state.orders].reverse() as T;
   if (path === '/admin/bookings') return state.bookings as T;
 
-  if ((m = path.match(/^\/admin\/orders\/(\d+)\/(ship|cancel)$/))) {
+  if ((m = path.match(/^\/admin\/orders\/(\d+)\/(ship|cancel|ready|collected)$/))) {
     const order = state.orders.find((o) => o.id === Number(m![1]));
     if (!order) throw new ApiError('Niet gevonden', 404);
-    if (m[2] === 'ship') {
+    if (m[2] === 'ready' || m[2] === 'collected') {
+      if (order.shipping_method !== 'pickup' || !['paid', 'ready'].includes(order.status)) throw new ApiError('Dat kan niet bij deze bestelling', 409);
+      order.status = m[2];
+      if (m[2] === 'ready') order.ready_at = now();
+      else order.collected_at = now();
+    } else if (m[2] === 'ship') {
       if (order.status !== 'paid') throw new ApiError('Alleen betaalde bestellingen kunnen als verzonden worden gemarkeerd', 409);
       order.status = 'shipped';
       order.shipped_at = now();
@@ -193,5 +207,58 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
     return booking as T;
   }
 
+  // --- Admin in the demo: browse everything, save nothing. -------------------------------
+  if (path === '/posts' || path.startsWith('/posts?') || path === '/team') return [] as T;
+  if (path === '/admin/session') return (demoSignedIn ? { state: 'ok', user: DEMO_USER } : { state: 'login' }) as T;
+  if (path === '/admin/login') {
+    demoSignedIn = true;
+    return { state: 'ok', user: DEMO_USER } as T;
+  }
+  if (path === '/admin/logout') {
+    demoSignedIn = false;
+    return { ok: true } as T;
+  }
+  if (path === '/admin/account') return { user: DEMO_USER, sessions: [{ current: true, createdAt: now(), lastSeenAt: now(), ip: null, device: 'Deze browser' }], audit: [] } as T;
+  if (path === '/admin/settings') {
+    const field = { set: false, fromEnv: false };
+    const keys = ['mollieApiKey', 'smtpHost', 'smtpPort', 'smtpSecure', 'smtpUser', 'smtpPass', 'mailFrom', 'notifyEmail'];
+    return { values: Object.fromEntries(keys.map((k) => [k, field])), payments: 'mock', webhooks: false } as T;
+  }
+  if (path === '/admin/content' && method === 'GET') {
+    return {
+      site: siteEdit(SITE),
+      shipping: shippingEdit(),
+      home: HOME,
+      about: ABOUT,
+      shop: SHOP,
+      services: SERVICES.map((sv) => ({ id: sv.id, category: sv.category, ...serviceEdit(sv) })),
+      products: PRODUCTS,
+      edited: { site: false, shipping: false, home: false, about: false, services: [], products: false },
+      builtinImages: BUILTIN_IMAGES,
+      embed: '{}',
+    } as T;
+  }
+  if (path === '/admin/posts' || path === '/admin/media' || path === '/admin/team') return [] as T;
+  if (path === '/admin/email') {
+    const { EMAIL, EMAIL_KINDS, KIND_INFO, TEMPLATE_INFO } = await import('../../shared/email');
+    return {
+      settings: EMAIL,
+      defaults: EMAIL,
+      edited: false,
+      kinds: EMAIL_KINDS.map((id) => ({ id, ...KIND_INFO[id] })),
+      templates: Object.entries(TEMPLATE_INFO).map(([id, info]) => ({ id, ...info })),
+    } as T;
+  }
+  if (path === '/admin/email/preview') {
+    const { sampleMail } = await import('../../server/emails');
+    const body = options.body as { settings: import('../../shared/email').EmailSettings; kind: import('../../shared/email').EmailKind };
+    const mail = sampleMail(body.kind, body.settings, location.origin, 'demo@detail2go.nl');
+    return { subject: mail.subject, html: mail.html, text: mail.text } as T;
+  }
+  if (path.startsWith('/admin/')) throw new ApiError('Dit is een demo: wijzigingen worden niet opgeslagen.', 400);
+
   throw new ApiError('Niet gevonden', 404);
 }
+
+let demoSignedIn = false;
+const DEMO_USER = { id: 1, email: 'demo@detail2go.nl', name: 'Demo', totpEnabled: false };

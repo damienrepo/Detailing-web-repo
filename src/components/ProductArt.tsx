@@ -1,8 +1,15 @@
 import { useId } from 'react';
 import { getProduct, type ProductId } from '../../shared/catalog';
+import { imageSrcSet, imageUrl } from '../lib/images';
+
+/** Products that have a drawn illustration; others show their photo or a plain placeholder. */
+const ILLUSTRATED = ['interior-cleaner', 'interior-brush', 'microfiber-towel', 'interior-kit'];
 
 // Vector packshots used until real product photography is available.
 // To switch to photos, render an <img> in ProductImage instead of these.
+
+const GOLD = '#e8b931';
+const GOLD_DEEP = '#b8891a';
 
 function Bottle({ uid }: { uid: string }) {
   return (
@@ -26,7 +33,7 @@ function Bottle({ uid }: { uid: string }) {
       </defs>
       {/* trigger head */}
       <path d="M170 110 V86 Q170 72 184 72 H262 Q271 72 271 81 V88 Q271 97 262 97 H238 V110 Z" fill={`url(#${uid}-head)`} />
-      <rect x="264" y="76" width="13" height="17" rx="2" fill="#e4572e" />
+      <rect x="264" y="76" width="13" height="17" rx="2" fill={GOLD} />
       <path d="M233 97 H247 Q253 122 247 150 Q245 157 239 153 Q241 126 233 97 Z" fill="#1c1c1f" />
       <rect x="176" y="108" width="48" height="16" rx="3" fill="#242427" />
       <rect x="176" y="112" width="48" height="2" fill="#0d0d0e" opacity="0.6" />
@@ -39,9 +46,9 @@ function Bottle({ uid }: { uid: string }) {
       <rect x="160" y="168" width="7" height="176" rx="3.5" fill="#fff" opacity="0.07" />
       {/* label */}
       <rect x="157" y="198" width="86" height="124" fill={`url(#${uid}-label)`} />
-      <rect x="157" y="198" width="86" height="4" fill="#e4572e" />
-      <text x="200" y="228" textAnchor="middle" fontFamily="Archivo Variable, sans-serif" fontSize="13" fontWeight="700" letterSpacing="3.5" fill="#0e0e0f" style={{ fontStretch: '125%' }}>
-        LUMEN
+      <rect x="157" y="198" width="86" height="4" fill={GOLD} />
+      <text x="200" y="228" textAnchor="middle" fontFamily="Montserrat, sans-serif" fontSize="12.5" fontWeight="700" fill="#0e0e0f">
+        Detail<tspan fill={GOLD_DEEP}>2</tspan>Go
       </text>
       <line x1="171" x2="229" y1="238" y2="238" stroke="#0e0e0f" strokeOpacity="0.25" />
       <text x="200" y="260" textAnchor="middle" fontFamily="Archivo Variable, sans-serif" fontSize="10" fontWeight="600" letterSpacing="1.2" fill="#0e0e0f">
@@ -81,9 +88,9 @@ function Brush({ uid }: { uid: string }) {
       {/* handle */}
       <path d="M62 186 Q52 200 62 214 L250 218 V182 Z" fill={`url(#${uid}-handle)`} />
       <circle cx="78" cy="200" r="5" fill="#e8e5de" />
-      <rect x="232" y="182" width="5" height="36" fill="#e4572e" />
-      <text x="150" y="203.5" textAnchor="middle" fontFamily="Archivo Variable, sans-serif" fontSize="9" fontWeight="700" letterSpacing="3" fill="#8d8a84" style={{ fontStretch: '125%' }}>
-        LUMEN
+      <rect x="232" y="182" width="5" height="36" fill={GOLD} />
+      <text x="150" y="203.5" textAnchor="middle" fontFamily="Montserrat, sans-serif" fontSize="10" fontWeight="700" letterSpacing="0.5" fill="#8d8a84">
+        Detail<tspan fill={GOLD}>2</tspan>Go
       </text>
       {/* ferrule */}
       <rect x="250" y="179" width="40" height="42" rx="2" fill={`url(#${uid}-ferrule)`} />
@@ -125,9 +132,9 @@ function Towel({ uid }: { uid: string }) {
       <rect x="92" y="92" width="216" height="196" rx="16" fill={`url(#${uid}-towel)`} />
       <rect x="92" y="92" width="216" height="196" rx="16" fill={`url(#${uid}-weave)`} />
       <path d="M100 190 Q200 182 300 190" stroke="#2b3036" strokeWidth="1.5" fill="none" opacity="0.5" />
-      <rect x="250" y="262" width="44" height="15" fill="#e4572e" />
-      <text x="272" y="272.5" textAnchor="middle" fontFamily="Archivo Variable, sans-serif" fontSize="7" fontWeight="700" letterSpacing="1.6" fill="#fff" style={{ fontStretch: '125%' }}>
-        LUMEN
+      <rect x="240" y="262" width="54" height="15" fill={GOLD} />
+      <text x="267" y="272.5" textAnchor="middle" fontFamily="Montserrat, sans-serif" fontSize="8" fontWeight="700" fill="#0e0e0f">
+        Detail2Go
       </text>
     </g>
   );
@@ -191,7 +198,21 @@ export function ProductImage({ productId, className = '' }: { productId: Product
   if (product?.image) {
     return (
       <div className={`relative aspect-square overflow-hidden bg-paper-2 ${className}`}>
-        <img src={product.image} alt={product.name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={imageUrl(product.image, 'sm')}
+          srcSet={imageSrcSet(product.image)}
+          sizes="(min-width: 768px) 50vw, 100vw"
+          alt={product.name}
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </div>
+    );
+  }
+  if (!ILLUSTRATED.includes(productId)) {
+    return (
+      <div className={`relative grid aspect-square place-items-center overflow-hidden bg-paper-2 p-6 text-center ${className}`}>
+        <span className="font-logo text-lg font-bold text-ink/25">{product?.name ?? 'Detail2Go'}</span>
       </div>
     );
   }

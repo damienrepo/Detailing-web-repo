@@ -1,9 +1,10 @@
 import crypto from 'node:crypto';
 import type { Db } from './db';
-import type { Country, Totals } from '../shared/pricing';
+import type { Country, ShippingMethod, Totals } from '../shared/pricing';
 import type { PaymentStatus } from './payments';
 
-export type OrderStatus = 'open' | 'paid' | 'failed' | 'shipped' | 'cancelled';
+/** Delivery: paid → shipped. Pickup: paid → ready → collected. */
+export type OrderStatus = 'open' | 'paid' | 'failed' | 'shipped' | 'ready' | 'collected' | 'cancelled';
 
 export type Customer = {
   email: string;
@@ -22,6 +23,7 @@ export type OrderRow = {
   public_id: string;
   number: string;
   status: OrderStatus;
+  shipping_method: ShippingMethod;
   email: string;
   name: string;
   phone: string | null;
@@ -41,6 +43,8 @@ export type OrderRow = {
   created_at: string;
   paid_at: string | null;
   shipped_at: string | null;
+  ready_at: string | null;
+  collected_at: string | null;
 };
 
 export type OrderItemRow = {
@@ -54,18 +58,19 @@ export type OrderItemRow = {
 
 export type Order = OrderRow & { items: OrderItemRow[] };
 
-export function createOrder(db: Db, customer: Customer, totals: Totals): Order {
+export function createOrder(db: Db, customer: Customer, totals: Totals, shippingMethod: ShippingMethod = 'delivery'): Order {
   const publicId = crypto.randomBytes(16).toString('base64url');
   const insert = db.transaction(() => {
     const { lastInsertRowid } = db
       .prepare(
-        `INSERT INTO orders (public_id, email, name, phone, street, house_number, postal_code, city, country, notes,
+        `INSERT INTO orders (public_id, shipping_method, email, name, phone, street, house_number, postal_code, city, country, notes,
           subtotal, shipping, vat, total)
-         VALUES (@publicId, @email, @name, @phone, @street, @houseNumber, @postalCode, @city, @country, @notes,
+         VALUES (@publicId, @shippingMethod, @email, @name, @phone, @street, @houseNumber, @postalCode, @city, @country, @notes,
           @subtotal, @shipping, @vat, @total)`,
       )
       .run({
         publicId,
+        shippingMethod,
         ...customer,
         phone: customer.phone || null,
         notes: customer.notes || null,
@@ -89,7 +94,7 @@ export function createOrder(db: Db, customer: Customer, totals: Totals): Order {
 }
 
 export function orderNumber(id: number) {
-  return `LU-${String(1000 + id)}`;
+  return `D2G-${String(1000 + id)}`;
 }
 
 function withItems(db: Db, row: OrderRow | undefined): Order | undefined {
@@ -148,9 +153,30 @@ export function markShipped(db: Db, id: number, trackingCode: string | null) {
     db
       .prepare(
         `UPDATE orders SET status = 'shipped', shipped_at = datetime('now'), tracking_code = ?
-         WHERE id = ? AND status = 'paid'`,
+         WHERE id = ? AND status = 'paid' AND shipping_method = 'delivery'`,
       )
       .run(trackingCode, id).changes === 1
+  );
+}
+
+/** Pickup order is packed and waiting at the shop. */
+export function markReady(db: Db, id: number) {
+  return (
+    db
+      .prepare(`UPDATE orders SET status = 'ready', ready_at = datetime('now') WHERE id = ? AND status = 'paid' AND shipping_method = 'pickup'`)
+      .run(id).changes === 1
+  );
+}
+
+/** Customer has collected the order. */
+export function markCollected(db: Db, id: number) {
+  return (
+    db
+      .prepare(
+        `UPDATE orders SET status = 'collected', collected_at = datetime('now')
+         WHERE id = ? AND status IN ('paid', 'ready') AND shipping_method = 'pickup'`,
+      )
+      .run(id).changes === 1
   );
 }
 
@@ -163,6 +189,7 @@ export function publicOrder(order: Order) {
   return {
     number: order.number,
     status: order.status,
+    shippingMethod: order.shipping_method,
     name: order.name,
     email: order.email,
     address: {

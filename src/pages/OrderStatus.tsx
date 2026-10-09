@@ -1,7 +1,7 @@
-import { CircleCheck, CircleX, Clock, Truck } from 'lucide-react';
+import { CircleCheck, CircleX, Clock, Store, Truck } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { formatPrice, SHIPPING } from '../../shared/pricing';
+import { formatPrice, PICKUP, pickupLocation, SHIPPING } from '../../shared/pricing';
 import { SITE } from '../../shared/site';
 import type { PublicOrder } from '../../server/orders';
 import { Button, ButtonLink, Notice } from '../components/ui';
@@ -68,18 +68,26 @@ export default function OrderStatus() {
             <StatusHeader order={order} onRetry={retry} retrying={retrying} />
 
             <div className="mt-12 grid gap-px border border-paper-3 bg-paper-3 sm:grid-cols-2">
-              <div className="bg-white p-6">
-                <h2 className="eyebrow text-stone-dark">Bezorgadres</h2>
-                <address className="mt-3 not-italic leading-relaxed">
-                  {order.name}
-                  <br />
-                  {order.address.street} {order.address.houseNumber}
-                  <br />
-                  {order.address.postalCode} {order.address.city}
-                  <br />
-                  {SHIPPING[order.address.country].label}
-                </address>
-              </div>
+              {order.shippingMethod === 'pickup' ? (
+                <div className="bg-white p-6">
+                  <h2 className="eyebrow text-stone-dark">Afhalen</h2>
+                  <p className="mt-3 leading-relaxed">{pickupLocation()}</p>
+                  {PICKUP.instructions && <p className="mt-2 text-sm leading-relaxed text-stone-dark">{PICKUP.instructions}</p>}
+                </div>
+              ) : (
+                <div className="bg-white p-6">
+                  <h2 className="eyebrow text-stone-dark">Bezorgadres</h2>
+                  <address className="mt-3 not-italic leading-relaxed">
+                    {order.name}
+                    <br />
+                    {order.address.street} {order.address.houseNumber}
+                    <br />
+                    {order.address.postalCode} {order.address.city}
+                    <br />
+                    {SHIPPING[order.address.country].label}
+                  </address>
+                </div>
+              )}
               <div className="bg-white p-6">
                 <h2 className="eyebrow text-stone-dark">Bestelling</h2>
                 <p className="mt-3 leading-relaxed">
@@ -105,7 +113,7 @@ export default function OrderStatus() {
               </ul>
               <dl className="tabular mt-3 space-y-1.5 border-t border-ink/10 pt-3 text-[15px]">
                 <div className="flex justify-between text-stone-dark">
-                  <dt>Verzending</dt>
+                  <dt>{order.shippingMethod === 'pickup' ? 'Afhalen' : 'Verzending'}</dt>
                   <dd>{order.shipping === 0 ? 'Gratis' : formatPrice(order.shipping)}</dd>
                 </div>
                 <div className="flex justify-between font-semibold">
@@ -139,8 +147,26 @@ function StatusHeader({ order, onRetry, retrying }: { order: PublicOrder; onRetr
     case 'paid':
       return (
         <Header icon={<CircleCheck className="h-8 w-8 text-[#2f6b4f]" />} title={`Bedankt, ${firstName}!`}>
-          We hebben je betaling ontvangen. Je bestelling wordt binnen {SITE.dispatchDays} verzonden met {SITE.carrier}; je
-          ontvangt een track-and-trace code per e-mail.
+          {order.shippingMethod === 'pickup' ? (
+            <>We hebben je betaling ontvangen. {PICKUP.readyTime}; je krijgt een e-mail zodra je bestelling klaarligt om af te halen.</>
+          ) : (
+            <>
+              We hebben je betaling ontvangen. Je bestelling wordt binnen {SITE.dispatchDays} verzonden met {SITE.carrier}; je
+              ontvangt een track-and-trace code per e-mail.
+            </>
+          )}
+        </Header>
+      );
+    case 'ready':
+      return (
+        <Header icon={<Store className="h-8 w-8 text-[#2f6b4f]" />} title="Je bestelling ligt klaar">
+          Je kunt hem ophalen op {pickupLocation()}. Neem je bestelnummer mee.
+        </Header>
+      );
+    case 'collected':
+      return (
+        <Header icon={<CircleCheck className="h-8 w-8 text-[#2f6b4f]" />} title="Opgehaald">
+          Je hebt je bestelling opgehaald. Veel plezier ermee!
         </Header>
       );
     case 'shipped':
@@ -176,7 +202,7 @@ function StatusHeader({ order, onRetry, retrying }: { order: PublicOrder; onRetr
       );
     case 'failed':
       return (
-        <Header icon={<CircleX className="h-8 w-8 text-accent-strong" />} title="De betaling is niet gelukt">
+        <Header icon={<CircleX className="h-8 w-8 text-danger" />} title="De betaling is niet gelukt">
           De betaling is geannuleerd of verlopen. Je bestelling staat nog klaar; probeer het opnieuw of kies een andere
           betaalmethode.
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">

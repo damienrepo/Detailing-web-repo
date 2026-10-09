@@ -10,7 +10,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(path: string, options: { method?: string; body?: unknown; token?: string } = {}): Promise<T> {
+export async function api<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
   if (DEMO) {
     const { demoApi } = await import('./demoApi');
     return demoApi<T>(path, options);
@@ -19,9 +19,11 @@ export async function api<T>(path: string, options: { method?: string; body?: un
   try {
     res = await fetch(`/api${path}`, {
       method: options.method ?? (options.body ? 'POST' : 'GET'),
+      credentials: 'same-origin',
       headers: {
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-        ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        // Required by the server for admin calls; plain cross-site forms cannot set it.
+        'X-Requested-With': 'XMLHttpRequest',
       },
       body: options.body ? JSON.stringify(options.body) : undefined,
     });

@@ -127,3 +127,30 @@ export class MockProvider implements PaymentProvider {
     return payment;
   }
 }
+
+/** Checks a Mollie API key against the Mollie API; resolves with a Dutch error message on failure. */
+export async function verifyMollieKey(apiKey: string, fetchImpl: typeof fetch = fetch): Promise<string | undefined> {
+  try {
+    const res = await fetchImpl('https://api.mollie.com/v2/methods', { headers: { Authorization: `Bearer ${apiKey}` } });
+    if (res.ok) return undefined;
+    if (res.status === 401) return 'Mollie herkent deze API-key niet. Kopieer hem opnieuw uit je Mollie-dashboard.';
+    return `Mollie gaf een onverwachte fout (${res.status}). Probeer het later opnieuw.`;
+  } catch {
+    return 'Kan Mollie niet bereiken. Controleer de internetverbinding van de server.';
+  }
+}
+
+/**
+ * Picks the payment provider from the current settings: Mollie when a key is set, the
+ * mock checkout during development, otherwise none (checkout disabled).
+ */
+export function createPaymentResolver(getKey: () => string | undefined, options: { production: boolean; appUrl: string }) {
+  const mock = options.production ? undefined : new MockProvider(options.appUrl);
+  let cached: { key: string; provider: MollieProvider } | undefined;
+  return (): PaymentProvider | undefined => {
+    const key = getKey();
+    if (!key) return mock;
+    if (cached?.key !== key) cached = { key, provider: new MollieProvider(key) };
+    return cached.provider;
+  };
+}

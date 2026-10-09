@@ -1,8 +1,8 @@
 import { Check, ChevronRight, Plus } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
-import { BUNDLE_ID, getProduct, getProductBySlug, PRODUCTS, type Product } from '../../shared/catalog';
-import { formatPrice } from '../../shared/pricing';
+import { getBundle, getProduct, getProductBySlug, listedProducts, type Product } from '../../shared/catalog';
+import { deliveryCountries, formatPrice, PICKUP } from '../../shared/pricing';
 import { SITE } from '../../shared/site';
 import { ProductImage } from '../components/ProductArt';
 import { ShopUsps } from '../components/ShopUsps';
@@ -42,9 +42,11 @@ function ProductDetail({ product }: { product: Product }) {
     },
   });
 
-  const bundle = getProduct(BUNDLE_ID)!;
-  const partOfBundle = bundle.includes!.some((i) => i.productId === product.id);
-  const others = PRODUCTS.filter((p) => p.id !== product.id && p.id !== BUNDLE_ID);
+  const bundle = getBundle();
+  const partOfBundle = Boolean(bundle && bundle.id !== product.id && bundle.includes!.some((i) => i.productId === product.id));
+  const others = listedProducts()
+    .filter((p) => p.id !== product.id && p.id !== bundle?.id)
+    .slice(0, 3);
 
   return (
     <div className="bg-paper pt-16 text-ink md:pt-[72px]">
@@ -67,7 +69,7 @@ function ProductDetail({ product }: { product: Product }) {
           <div className="md:sticky md:top-24">
             <div className="relative">
               <ProductImage productId={product.id} />
-              {product.badge && <span className="eyebrow absolute left-4 top-4 bg-accent-fill px-2.5 py-1.5 text-white">{product.badge}</span>}
+              {product.badge && <span className="eyebrow absolute left-4 top-4 bg-accent-fill px-2.5 py-1.5 text-ink">{product.badge}</span>}
             </div>
           </div>
         </div>
@@ -83,9 +85,13 @@ function ProductDetail({ product }: { product: Product }) {
             <Price cents={product.price} compareAt={product.compareAtPrice} className="text-3xl font-semibold" />
             <span className="text-sm text-stone-dark">incl. btw</span>
           </div>
-          <p className={`mt-2 flex items-center gap-2 text-sm ${product.inStock ? 'text-[#2f6b4f]' : 'text-accent-strong'}`}>
-            <span className={`h-2 w-2 rounded-full ${product.inStock ? 'bg-[#2f6b4f]' : 'bg-accent-strong'}`} aria-hidden />
-            {product.inStock ? `Op voorraad · verzonden binnen ${SITE.dispatchDays}` : 'Tijdelijk uitverkocht'}
+          <p className={`mt-2 flex items-center gap-2 text-sm ${product.inStock ? 'text-[#2f6b4f]' : 'text-danger'}`}>
+            <span className={`h-2 w-2 rounded-full ${product.inStock ? 'bg-[#2f6b4f]' : 'bg-danger'}`} aria-hidden />
+            {product.inStock
+              ? deliveryCountries().length
+                ? `Op voorraad · verzonden binnen ${SITE.dispatchDays}`
+                : `Op voorraad · af te halen in ${SITE.address.city}`
+              : 'Tijdelijk uitverkocht'}
           </p>
 
           <div className="mt-8 flex gap-3">
@@ -108,7 +114,8 @@ function ProductDetail({ product }: { product: Product }) {
               <h2 className="eyebrow text-stone-dark">In deze set</h2>
               <ul className="mt-4 divide-y divide-ink/10 border-y border-ink/10">
                 {product.includes.map((inc) => {
-                  const p = getProduct(inc.productId)!;
+                  const p = getProduct(inc.productId);
+                  if (!p) return null;
                   return (
                     <li key={p.id}>
                       <Link to={`/shop/${p.slug}`} className="flex items-center gap-4 py-3 hover:bg-ink/[0.03]">
@@ -135,13 +142,14 @@ function ProductDetail({ product }: { product: Product }) {
             </div>
           )}
 
-          {partOfBundle && (
+          {bundle && partOfBundle && (
             <Link to={`/shop/${bundle.slug}`} className="group mt-10 flex items-center gap-4 border border-ink/15 bg-white p-4 transition-colors hover:border-ink">
               <ProductImage productId={bundle.id} className="w-16 shrink-0" />
               <span className="flex-1 text-sm">
                 <span className="block font-medium">Voordeliger in de {bundle.name}</span>
                 <span className="text-stone-dark">
-                  Cleaner, borstel en doek voor {formatPrice(bundle.price)} — {bundle.badge?.toLowerCase()}
+                  {bundle.tagline} {formatPrice(bundle.price)}
+                  {bundle.badge && ` — ${bundle.badge.toLowerCase()}`}
                 </span>
               </span>
               <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
@@ -190,8 +198,9 @@ function ProductDetail({ product }: { product: Product }) {
             </Section>
             <Section title="Verzending & retour">
               <p className="leading-relaxed text-stone-dark">
-                Op werkdagen verzonden binnen {SITE.dispatchDays} met {SITE.carrier}. Je hebt {SITE.returnDays} dagen
-                bedenktijd na ontvangst.{' '}
+                {deliveryCountries().length > 0 && <>Op werkdagen verzonden binnen {SITE.dispatchDays} met {SITE.carrier}. </>}
+                {PICKUP.enabled && <>Afhalen in {SITE.address.city} kan ook{PICKUP.cost === 0 ? ', gratis' : ''}. </>}
+                Je hebt {SITE.returnDays} dagen bedenktijd na ontvangst.{' '}
                 <Link to="/verzending" className="text-ink underline underline-offset-4">
                   Verzending & betalen
                 </Link>{' '}

@@ -6,7 +6,7 @@ import { formatPrice } from '../../shared/pricing';
 type Variant = 'accent' | 'light' | 'dark' | 'outline-light' | 'outline-dark';
 
 const variants: Record<Variant, string> = {
-  accent: 'bg-accent-fill text-white hover:bg-accent-strong',
+  accent: 'bg-accent-fill text-ink hover:bg-accent',
   light: 'bg-paper text-ink hover:bg-white',
   dark: 'bg-ink text-paper hover:bg-ink-3',
   'outline-light': 'border border-paper/30 text-paper hover:border-paper hover:bg-paper/5',
@@ -63,10 +63,21 @@ export function TextLink({ className = '', children, ...props }: LinkProps) {
   );
 }
 
-export function Eyebrow({ index, children, className = '' }: { index?: string; children: ReactNode; className?: string }) {
+export function Eyebrow({
+  index,
+  children,
+  className = '',
+  tone = 'dark',
+}: {
+  index?: string;
+  children: ReactNode;
+  className?: string;
+  /** Background the eyebrow sits on; light backgrounds need the deeper gold. */
+  tone?: 'dark' | 'light';
+}) {
   return (
     <p className={`eyebrow flex items-center gap-3 ${className}`}>
-      {index && <span className="text-accent">{index}</span>}
+      {index && <span className={tone === 'dark' ? 'text-accent' : 'text-accent-strong'}>{index}</span>}
       {index && <span aria-hidden className="h-px w-6 bg-current opacity-40" />}
       <span>{children}</span>
     </p>
@@ -143,7 +154,7 @@ function FieldShell({
       </label>
       {children}
       {error ? (
-        <p id={`${id}-error`} className="mt-1.5 text-sm text-accent-strong">
+        <p id={`${id}-error`} className="mt-1.5 text-sm text-danger">
           {error}
         </p>
       ) : (
@@ -165,7 +176,7 @@ export const Input = forwardRef<HTMLInputElement, ComponentProps<'input'> & Fiel
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`${fieldBase} ${error ? 'border-accent-strong' : 'border-paper-3'} ${className}`}
+        className={`${fieldBase} ${error ? 'border-danger' : 'border-paper-3'} ${className}`}
         {...props}
       />
     </FieldShell>
@@ -179,7 +190,7 @@ export function Select({ label, error, hint, optional, className = '', children,
       <select
         id={id}
         aria-invalid={error ? true : undefined}
-        className={`${fieldBase} appearance-none bg-[url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='12'%20height='8'%20viewBox='0%200%2012%208'%3E%3Cpath%20d='M1%201l5%205%205-5'%20stroke='%230e0e0f'%20stroke-width='1.5'%20fill='none'/%3E%3C/svg%3E")] bg-[position:right_14px_center] bg-no-repeat pr-10 ${error ? 'border-accent-strong' : 'border-paper-3'} ${className}`}
+        className={`${fieldBase} appearance-none bg-[url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='12'%20height='8'%20viewBox='0%200%2012%208'%3E%3Cpath%20d='M1%201l5%205%205-5'%20stroke='%230e0e0f'%20stroke-width='1.5'%20fill='none'/%3E%3C/svg%3E")] bg-[position:right_14px_center] bg-no-repeat pr-10 ${error ? 'border-danger' : 'border-paper-3'} ${className}`}
         {...props}
       >
         {children}
@@ -195,7 +206,7 @@ export function Textarea({ label, error, hint, optional, className = '', ...prop
       <textarea
         id={id}
         aria-invalid={error ? true : undefined}
-        className={`${fieldBase} min-h-28 ${error ? 'border-accent-strong' : 'border-paper-3'} ${className}`}
+        className={`${fieldBase} min-h-28 ${error ? 'border-danger' : 'border-paper-3'} ${className}`}
         {...props}
       />
     </FieldShell>
@@ -205,7 +216,7 @@ export function Textarea({ label, error, hint, optional, className = '', ...prop
 export function Notice({ tone = 'info', children }: { tone?: 'info' | 'error' | 'success'; children: ReactNode }) {
   const styles = {
     info: 'border-ink/15 bg-paper-2 text-ink',
-    error: 'border-accent-strong/40 bg-[#fbe9e3] text-accent-strong',
+    error: 'border-danger/40 bg-[#fbe9e3] text-danger',
     success: 'border-[#2f6b4f]/30 bg-[#e6f0ea] text-[#24533d]',
   };
   return (

@@ -1,11 +1,13 @@
 @import '@fontsource-variable/archivo/wdth.css';
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/montserrat/latin-700.css';
 @import 'tailwindcss';
 
 @theme {
   --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-logo: 'Montserrat', 'Archivo Variable', ui-sans-serif, sans-serif;
 
   /* Graphite for dark sections, warm paper for light ones, one signal accent. */
   --color-ink: #0e0e0f;
@@ -16,9 +18,11 @@
   --color-paper-3: #d9d5cc;
   --color-stone: #8d8a84;
   --color-stone-dark: #5f5c57;
-  --color-accent: #e4572e;
-  --color-accent-fill: #c4431d;
-  --color-accent-strong: #a63a19;
+  /* Gold: bright for dark sections, fill carries ink text, strong for text on paper. */
+  --color-accent: #e8b931;
+  --color-accent-fill: #d9a72a;
+  --color-accent-strong: #85610f;
+  --color-danger: #a63a19;
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 }
@@ -39,7 +43,7 @@
 
   ::selection {
     background: var(--color-accent);
-    color: #fff;
+    color: var(--color-ink);
   }
 
   :focus-visible {
@@ -61,6 +65,25 @@
 }
 
 @layer components {
+  /* Scrollable but without a visible scrollbar (photo carousels). */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Scroll cue under the homepage hero: a dot gliding down inside a mouse outline. */
+  .scroll-dot {
+    transform: translateX(-50%);
+    animation: scroll-dot 2s var(--ease-out-quart) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-dot {
+      animation: none !important;
+    }
+  }
+
   .reveal {
     opacity: 0;
     transform: translateY(16px);
@@ -111,4 +134,21 @@
 
 @utility tabular {
   font-variant-numeric: tabular-nums;
+}
+
+@keyframes scroll-dot {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+  25% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 16px);
+  }
 }

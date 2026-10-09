@@ -1,8 +1,7 @@
 import { CircleCheck } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router';
-import { formatPrice } from '../../shared/pricing';
-import { getService, SERVICES } from '../../shared/services';
+import { Link, useSearchParams } from 'react-router';
+import { CATEGORIES, getService, listedServices, nameInSentence, servicePriceLabel, servicesIn } from '../../shared/services';
 import { SITE } from '../../shared/site';
 import { Button, ButtonLink, Eyebrow, Input, Notice, Select, Textarea } from '../components/ui';
 import { api, ApiError } from '../lib/api';
@@ -15,9 +14,9 @@ function tomorrow() {
 }
 
 export default function Booking() {
-  usePageMeta('Afspraak aanvragen', 'Vraag een afspraak aan voor lakcorrectie, keramische coating of interieur detailing. Je hoort binnen één werkdag van ons.');
+  usePageMeta('Afspraak aanvragen', 'Vraag een afspraak of offerte aan voor handwas, interieurreiniging, polijsten, glascoating, PPF of schadeherstel. Je hoort binnen één werkdag van ons.');
   const [params] = useSearchParams();
-  const initialService = getService(params.get('dienst') ?? '')?.id ?? SERVICES[0].id;
+  const initialService = getService(params.get('dienst') ?? '')?.id ?? listedServices()[0]?.id ?? '';
   const [form, setForm] = useState({
     serviceId: initialService,
     vehicle: '',
@@ -61,7 +60,7 @@ export default function Booking() {
     }
   }
 
-  const service = getService(form.serviceId)!;
+  const service = getService(form.serviceId) ?? listedServices()[0];
 
   if (done) {
     return (
@@ -72,7 +71,7 @@ export default function Booking() {
           <p className="mt-4 text-[17px] leading-relaxed text-stone-dark">
             Bedankt, {form.name.split(' ')[0]}. We nemen binnen één werkdag contact met je op om een datum en de prijs voor
             {' '}
-            {service.name.toLowerCase()} te bevestigen. Je ontvangt ook een bevestiging per e-mail.
+            {nameInSentence(service)} te bevestigen. Je ontvangt ook een bevestiging per e-mail.
           </p>
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
             <ButtonLink to="/" variant="dark">
@@ -94,8 +93,8 @@ export default function Booking() {
           <Eyebrow className="text-stone-dark">Afspraak</Eyebrow>
           <h1 className="font-display mt-5 text-[clamp(2.5rem,5vw,4rem)] leading-[0.98]">Afspraak aanvragen</h1>
           <p className="mt-6 text-[17px] leading-relaxed text-stone-dark">
-            Laat weten wat je wilt laten doen. We nemen binnen één werkdag contact op met een voorstel voor datum en prijs.
-            Pas na onze bevestiging staat de afspraak vast.
+            Laat weten wat je wilt laten doen en waar de auto staat. We nemen binnen één werkdag contact op met een voorstel
+            voor datum en prijs. Pas na onze bevestiging staat de afspraak vast.
           </p>
 
           <div className="mt-10 border-t border-ink/15 pt-8">
@@ -104,14 +103,13 @@ export default function Booking() {
             <p className="mt-2 leading-relaxed text-stone-dark">{service.summary}</p>
             <dl className="tabular mt-6 flex gap-10">
               <div>
-                <dt className="eyebrow text-stone-dark">Vanaf</dt>
-                <dd className="mt-1 text-lg font-medium">{formatPrice(service.fromPrice)}</dd>
-              </div>
-              <div>
-                <dt className="eyebrow text-stone-dark">Duur</dt>
-                <dd className="mt-1 text-lg font-medium">{service.duration}</dd>
+                <dt className="eyebrow text-stone-dark">Prijs</dt>
+                <dd className="mt-1 text-lg font-medium first-letter:uppercase">{servicePriceLabel(service)}</dd>
               </div>
             </dl>
+            <Link to={`/diensten/${service.id}`} className="mt-6 inline-block text-sm text-ink underline underline-offset-4">
+              Meer over {nameInSentence(service)}
+            </Link>
           </div>
 
           <div className="mt-10 border-t border-ink/15 pt-8 text-[15px] leading-relaxed text-stone-dark">
@@ -133,10 +131,14 @@ export default function Booking() {
           <fieldset className="space-y-4">
             <legend className="eyebrow mb-4 text-stone-dark">Behandeling & auto</legend>
             <Select label="Behandeling" {...set('serviceId')}>
-              {SERVICES.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} — vanaf {formatPrice(s.fromPrice)}
-                </option>
+              {CATEGORIES.filter((c) => servicesIn(c.id).length > 0).map((c) => (
+                <optgroup key={c.id} label={c.name}>
+                  {servicesIn(c.id).map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} — {servicePriceLabel(s).toLowerCase()}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </Select>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -152,13 +154,13 @@ export default function Booking() {
               <Input label="E-mailadres" type="email" autoComplete="email" required {...set('email')} />
               <Input label="Telefoonnummer" type="tel" autoComplete="tel" required {...set('phone')} />
             </div>
-            <Input label="Postcode" autoComplete="postal-code" optional className="sm:max-w-48" {...set('postalCode')} />
+            <Input label="Postcode" autoComplete="postal-code" optional hint="Voor behandelingen op locatie" className="sm:max-w-48" {...set('postalCode')} />
             <Textarea
               label="Toelichting"
               optional
               rows={4}
               maxLength={1000}
-              placeholder="Bijv. de staat van de lak, specifieke vlekken of wensen"
+              placeholder="Bijv. op locatie of in de werkplaats, de staat van de lak, specifieke vlekken of wensen"
               {...set('message')}
             />
             {/* Honeypot for spam bots, hidden from people and screen readers. */}

@@ -16,6 +16,7 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./
 COPY --from=build /app/server ./server
 COPY --from=build /app/shared ./shared
+COPY --from=build /app/seed ./seed
 # Mount persistent storage here, otherwise orders are lost on redeploy.
 VOLUME /data
 EXPOSE 8080

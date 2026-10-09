@@ -54,6 +54,86 @@ const MIGRATIONS: string[] = [
     message TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );`,
+  // Admin accounts, sessions and audit log; encrypted settings; editable content, blog and media.
+  `CREATE TABLE admin_users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    name TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    totp_secret TEXT,
+    totp_last_counter INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    last_login_at TEXT
+  );
+  CREATE TABLE admin_sessions (
+    token_hash TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+    stage TEXT NOT NULL DEFAULT 'full',
+    created_at INTEGER NOT NULL,
+    last_seen_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    ip TEXT,
+    user_agent TEXT
+  );
+  CREATE INDEX admin_sessions_user ON admin_sessions(user_id);
+  CREATE TABLE admin_audit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER REFERENCES admin_users(id) ON DELETE SET NULL,
+    action TEXT NOT NULL,
+    detail TEXT,
+    ip TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE content (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    excerpt TEXT NOT NULL DEFAULT '',
+    body TEXT NOT NULL DEFAULT '',
+    cover TEXT,
+    status TEXT NOT NULL DEFAULT 'draft',
+    published_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX posts_published ON posts(status, published_at);
+  CREATE TABLE media (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    alt TEXT NOT NULL DEFAULT '',
+    width INTEGER NOT NULL,
+    height INTEGER NOT NULL,
+    bytes INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );`,
+  // Pickup as a shipping method, with its own steps: ready for pickup, collected.
+  `ALTER TABLE orders ADD COLUMN shipping_method TEXT NOT NULL DEFAULT 'delivery';
+  ALTER TABLE orders ADD COLUMN ready_at TEXT;
+  ALTER TABLE orders ADD COLUMN collected_at TEXT;`,
+  // Team members for the /team page.
+  `CREATE TABLE team_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    role TEXT NOT NULL,
+    bio TEXT NOT NULL DEFAULT '',
+    quote TEXT NOT NULL DEFAULT '',
+    photo TEXT,
+    facts TEXT NOT NULL DEFAULT '[]',
+    visible INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );`,
 ];
 
 export function openDb(file: string): Db {
