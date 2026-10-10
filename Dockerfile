@@ -17,8 +17,9 @@ COPY --from=build /app/package.json ./
 COPY --from=build /app/server ./server
 COPY --from=build /app/shared ./shared
 COPY --from=build /app/seed ./seed
+COPY docker-entrypoint.sh ./
 # Mount persistent storage at /data (e.g. a Railway volume), otherwise orders are lost on redeploy.
-# No VOLUME instruction: some hosts, Railway among them, reject it.
+# No VOLUME instruction: some hosts, Railway among them, reject it. The entrypoint prepares /data
+# as root and then runs the server as the "node" user.
 EXPOSE 8080
-USER node
-CMD ["node_modules/.bin/tsx", "server/index.ts"]
+CMD ["sh", "docker-entrypoint.sh"]
