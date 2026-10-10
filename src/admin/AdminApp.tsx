@@ -135,11 +135,7 @@ function SetupScreen({ onDone }: { onDone: (s: Session) => void }) {
   return (
     <AuthFrame
       title="Welkom!"
-      intro={
-        <>
-          Maak het beheerdersaccount aan. De <strong>setupcode</strong> staat in het venster waarin de server draait (bijvoorbeeld de terminal waar je <code>npm run dev</code> startte).
-        </>
-      }
+      intro="Maak het beheerdersaccount aan met je setupcode."
     >
       <form onSubmit={submit} className="space-y-4">
         {error && <Notice tone="error">{error}</Notice>}

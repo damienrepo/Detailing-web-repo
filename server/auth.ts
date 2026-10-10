@@ -362,7 +362,7 @@ export function createAuthRouter(auth: Auth) {
     const { code, name, email, password } = parsed.data;
     if (!safeEqual(formatSetupCode(code), auth.setupCode)) {
       auth.audit(null, 'setup_failed', req);
-      return res.status(401).json({ error: 'De setupcode klopt niet. Je vindt hem in het venster waarin de server draait.' });
+      return res.status(401).json({ error: 'De setupcode klopt niet.' });
     }
     const problem = passwordProblem(password, email);
     if (problem) return res.status(400).json({ error: problem, fields: { password: problem } });
