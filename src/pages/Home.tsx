@@ -194,8 +194,9 @@ function AboutTeaser({ index }: { index: string }) {
           <h2 className="font-display mt-5 text-[clamp(2rem,4.5vw,3.5rem)] leading-[1.02]">{ABOUT.homeTitle}</h2>
           <p className="mt-6 text-[17px] leading-relaxed text-paper/70">{ABOUT.homeText}</p>
 
+          {/* Hidden on phones: four cards take too much room there; the about page has them all. */}
           {ABOUT.values.length > 0 && (
-            <ul className="mt-10 grid gap-x-8 gap-y-6 sm:grid-cols-2">
+            <ul className="mt-10 hidden gap-x-8 gap-y-6 sm:grid sm:grid-cols-2">
               {ABOUT.values.slice(0, 4).map((v) => (
                 <li key={v.title} className="border-t border-white/15 pt-4">
                   <span aria-hidden className="block h-1 w-6 bg-accent" />
