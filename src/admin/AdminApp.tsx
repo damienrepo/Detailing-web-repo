@@ -181,9 +181,6 @@ function LoginScreen({ onDone }: { onDone: (s: Session) => void }) {
         <Button type="submit" variant="dark" className="w-full" disabled={busy || !email || !password}>
           {busy ? 'Bezig met inloggen…' : 'Inloggen'}
         </Button>
-        <p className="text-sm leading-relaxed text-stone-dark">
-          Wachtwoord vergeten? Op de server kun je met <code>npm run admin -- reset-password &lt;e-mail&gt;</code> een nieuw wachtwoord aanmaken.
-        </p>
       </form>
     </AuthFrame>
   );
