@@ -1,7 +1,8 @@
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EMAIL } from '../shared/email';
 import { sampleMail } from './emails';
+import { createMailer, sendTestMail } from './mail';
 import { setup, signedIn } from './testUtils';
 
 const customer = { email: 'klant@example.com', name: '<b>Sanne</b> de Vries', country: 'NL', street: 'Kerkstraat', houseNumber: '1', postalCode: '7511AB', city: 'Enschede' };
@@ -69,5 +70,27 @@ describe('e-mails', () => {
         expect(mail.subject).not.toMatch(/\{[a-z]+\}/);
       }
     }
+  });
+});
+
+describe('Resend', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const smtp = { host: 'smtp.resend.com', port: 465, secure: true, user: 'resend', pass: 're_test123' };
+
+  it('sends over HTTPS with the SMTP password as API key', async () => {
+    const fetch = vi.fn(async () => new Response('{"id":"1"}', { status: 200 }));
+    vi.stubGlobal('fetch', fetch);
+    await createMailer(() => ({ smtp, mailFrom: 'Detail2Go <hello@detail2go.nl>' })).send({ to: 'klant@example.com', subject: 'Hoi', text: 'Tekst', html: '<p>Tekst</p>' });
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('https://api.resend.com/emails');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer re_test123');
+    expect(JSON.parse(init.body as string)).toMatchObject({ from: 'Detail2Go <hello@detail2go.nl>', to: ['klant@example.com'], subject: 'Hoi', html: '<p>Tekst</p>' });
+  });
+
+  it('explains what Resend rejected in the test mail', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"message":"The detail2go.nl domain is not verified."}', { status: 403 })));
+    expect(await sendTestMail({ smtp, mailFrom: 'hello@detail2go.nl' }, 'ik@example.com')).toContain('domain is not verified');
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"message":"API key is invalid"}', { status: 400 })));
+    expect(await sendTestMail({ smtp, mailFrom: 'hello@detail2go.nl' }, 'ik@example.com')).toContain('API-sleutel');
   });
 });
