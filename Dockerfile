@@ -17,8 +17,8 @@ COPY --from=build /app/package.json ./
 COPY --from=build /app/server ./server
 COPY --from=build /app/shared ./shared
 COPY --from=build /app/seed ./seed
-# Mount persistent storage here, otherwise orders are lost on redeploy.
-VOLUME /data
+# Mount persistent storage at /data (e.g. a Railway volume), otherwise orders are lost on redeploy.
+# No VOLUME instruction: some hosts, Railway among them, reject it.
 EXPOSE 8080
 USER node
 CMD ["node_modules/.bin/tsx", "server/index.ts"]
