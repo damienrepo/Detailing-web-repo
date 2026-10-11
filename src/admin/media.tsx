@@ -1,6 +1,6 @@
 // Image uploads and the media library picker. Photos are resized in the browser and re-encoded as JPEG,
 // which also removes location (GPS) and camera data before anything leaves the computer.
-import { Upload, X } from 'lucide-react';
+import { Check, Upload, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '../components/ui';
@@ -80,8 +80,14 @@ export async function uploadImage(file: File, alt = ''): Promise<MediaItem> {
   return api<MediaItem>('/admin/media', { body: { name, alt, large, small } });
 }
 
-/** Lets the admin choose an uploaded image, a built-in photo, or upload a new one. */
-export function MediaPicker({ onClose, onSelect }: { onClose: () => void; onSelect: (ref: string) => void }) {
+/**
+ * Lets the admin choose an uploaded image, a built-in photo, or upload a new one.
+ * With `onSelectMany`, several photos can be uploaded or ticked at once.
+ */
+export function MediaPicker({ onClose, onSelect, onSelectMany }: { onClose: () => void; onSelect?: (ref: string) => void; onSelectMany?: (refs: string[]) => void }) {
+  const multiple = Boolean(onSelectMany);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [progress, setProgress] = useState<string>();
   const [items, setItems] = useState<MediaItem[]>();
   const [builtin, setBuiltin] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -98,19 +104,50 @@ export function MediaPicker({ onClose, onSelect }: { onClose: () => void; onSele
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  async function upload(files: FileList | null) {
-    if (!files?.length) return;
+  async function upload(fileList: FileList | null) {
+    if (!fileList?.length) return;
+    const files = multiple ? Array.from(fileList) : [fileList[0]];
     setBusy(true);
     setError(undefined);
-    try {
-      const first = await uploadImage(files[0]);
-      onSelect(first.id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Uploaden is niet gelukt.');
-    } finally {
-      setBusy(false);
+    const done: MediaItem[] = [];
+    const failed: string[] = [];
+    for (const [i, file] of files.entries()) {
+      if (files.length > 1) setProgress(`${i + 1} van ${files.length}`);
+      try {
+        done.push(await uploadImage(file));
+      } catch (err) {
+        failed.push(`${file.name}: ${err instanceof Error ? err.message : 'uploaden is niet gelukt.'}`);
+      }
+    }
+    setBusy(false);
+    setProgress(undefined);
+    if (!failed.length) {
+      if (multiple) onSelectMany!([...picked, ...done.map((m) => m.id)]);
+      else onSelect?.(done[0].id);
+      return;
+    }
+    // Keep the dialog open so the error stays visible; what did upload is ticked already.
+    setError(failed.join(' '));
+    if (done.length) {
+      setItems((list) => [...done, ...(list ?? [])]);
+      setPicked((p) => [...p, ...done.map((m) => m.id)]);
     }
   }
+
+  function choose(ref: string) {
+    if (!multiple) return onSelect?.(ref);
+    setPicked((p) => (p.includes(ref) ? p.filter((r) => r !== ref) : [...p, ref]));
+  }
+
+  const mark = (ref: string) => {
+    const n = picked.indexOf(ref);
+    if (n === -1) return null;
+    return (
+      <span className="absolute right-2 top-2 grid h-6 min-w-6 place-items-center bg-accent-fill px-1 text-xs font-semibold text-ink">
+        {picked.length > 1 ? n + 1 : <Check className="h-3.5 w-3.5" aria-hidden />}
+      </span>
+    );
+  };
 
   const tile = 'group relative block aspect-[4/3] overflow-hidden border border-paper-3 bg-paper-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent';
 
@@ -126,7 +163,7 @@ export function MediaPicker({ onClose, onSelect }: { onClose: () => void; onSele
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-4 border-b border-paper-3 px-5 py-4">
-          <h2 className="text-lg font-semibold">Afbeelding kiezen</h2>
+          <h2 className="text-lg font-semibold">{multiple ? 'Foto’s kiezen' : 'Afbeelding kiezen'}</h2>
           <button type="button" onClick={onClose} className="grid h-10 w-10 place-items-center hover:bg-paper-2" aria-label="Sluiten">
             <X className="h-5 w-5" />
           </button>
@@ -141,11 +178,21 @@ export function MediaPicker({ onClose, onSelect }: { onClose: () => void; onSele
             }}
           >
             <Upload className="h-6 w-6 text-stone-dark" aria-hidden />
-            <p className="text-sm text-stone-dark">Sleep een foto hierheen, of</p>
+            <p className="text-sm text-stone-dark">{multiple ? 'Sleep foto’s hierheen (meerdere tegelijk mag), of' : 'Sleep een foto hierheen, of'}</p>
             <Button type="button" variant="dark" className="h-10 text-sm" disabled={busy} onClick={() => input.current?.click()}>
-              {busy ? 'Bezig met uploaden…' : 'Foto uploaden'}
+              {busy ? `Bezig met uploaden${progress ? ` (${progress})` : ''}…` : multiple ? 'Foto’s uploaden' : 'Foto uploaden'}
             </Button>
-            <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files)} />
+            <input
+              ref={input}
+              type="file"
+              accept="image/*"
+              multiple={multiple}
+              className="hidden"
+              onChange={(e) => {
+                upload(e.target.files);
+                e.target.value = '';
+              }}
+            />
             <p className="text-xs text-stone-dark">We verkleinen de foto automatisch en verwijderen locatie- en cameragegevens.</p>
           </div>
           {error && <p className="mt-3 text-sm text-danger">{error}</p>}
@@ -158,8 +205,9 @@ export function MediaPicker({ onClose, onSelect }: { onClose: () => void; onSele
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {items.map((m) => (
-                <button key={m.id} type="button" className={tile} onClick={() => onSelect(m.id)} title={m.name}>
+                <button key={m.id} type="button" className={`${tile} ${picked.includes(m.id) ? 'ring-2 ring-accent' : ''}`} onClick={() => choose(m.id)} title={m.name} aria-pressed={multiple ? picked.includes(m.id) : undefined}>
                   <img src={imageUrl(m.id, 'sm')} alt={m.alt || m.name} loading="lazy" className="h-full w-full object-cover" />
+                  {mark(m.id)}
                   <span className="absolute inset-x-0 bottom-0 truncate bg-ink/70 px-2 py-1 text-xs text-paper">{m.name}</span>
                 </button>
               ))}
@@ -169,13 +217,22 @@ export function MediaPicker({ onClose, onSelect }: { onClose: () => void; onSele
           <h3 className="eyebrow mb-3 mt-8 text-stone-dark">Foto’s van de website</h3>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {builtin.map((ref) => (
-              <button key={ref} type="button" className={tile} onClick={() => onSelect(ref)}>
+              <button key={ref} type="button" className={`${tile} ${picked.includes(ref) ? 'ring-2 ring-accent' : ''}`} onClick={() => choose(ref)} aria-pressed={multiple ? picked.includes(ref) : undefined}>
                 <img src={imageUrl(ref, 'sm')} alt={BUILTIN_LABELS[ref] ?? ref} loading="lazy" className="h-full w-full object-cover" />
+                {mark(ref)}
                 <span className="absolute inset-x-0 bottom-0 truncate bg-ink/70 px-2 py-1 text-xs text-paper">{BUILTIN_LABELS[ref] ?? ref}</span>
               </button>
             ))}
           </div>
         </div>
+        {multiple && (
+          <div className="flex items-center justify-between gap-4 border-t border-paper-3 px-5 py-3">
+            <p className="text-sm text-stone-dark">{picked.length ? `${picked.length} geselecteerd` : 'Klik op foto’s om ze te selecteren.'}</p>
+            <Button type="button" variant="dark" className="h-10 text-sm" disabled={!picked.length || busy} onClick={() => onSelectMany!(picked)}>
+              Toevoegen
+            </Button>
+          </div>
+        )}
       </div>
     </div>,
     document.body,

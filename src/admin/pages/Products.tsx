@@ -2,14 +2,14 @@ import { ArrowDown, ArrowUp, ChevronRight, ExternalLink, Plus, Trash2 } from 'lu
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { slugify } from '../../../shared/blog';
-import type { Product } from '../../../shared/catalog';
+import { productPhotos, type Product } from '../../../shared/catalog';
 import { formatPrice } from '../../../shared/pricing';
 import { ProductImage } from '../../components/ProductArt';
 import { Button, ButtonLink, Input, Select, Textarea } from '../../components/ui';
 import { confirmAction } from '../../lib/demo';
 import { useContent } from '../content';
 import { ShopSwitch } from '../ShopSwitch';
-import { ErrorBox, errorFor, ImageField, LineList, Loading, MoneyInput, PageHeader, Panel, RecordList, SaveBar, StatusBadge, Toggle, useDraft, useSave, useToast } from '../kit';
+import { ErrorBox, errorFor, ImageListField, LineList, Loading, MoneyInput, PageHeader, Panel, RecordList, SaveBar, StatusBadge, Toggle, useDraft, useSave, useToast } from '../kit';
 
 export function ProductsPage() {
   const content = useContent();
@@ -174,8 +174,16 @@ export function ProductEditor() {
           </div>
         </Panel>
 
-        <Panel title="Foto">
-          <ImageField label="Productfoto" hint="Vierkant op een lichte achtergrond werkt het best." value={draft.image} optional onChange={(v) => set('image', v ?? undefined)} error={e.image} />
+        <Panel title="Foto’s">
+          <ImageListField
+            label="Productfoto’s"
+            hint="De eerste foto is de hoofdfoto in de shop en de winkelwagen. Vierkant op een lichte achtergrond werkt het best."
+            value={productPhotos(draft)}
+            onChange={(photos) => setDraft({ ...draft, image: photos[0], gallery: photos.length > 1 ? photos.slice(1) : undefined })}
+            error={e.image ?? errorFor(e, 'gallery')}
+            firstLabel="Hoofdfoto"
+            allowEmpty
+          />
         </Panel>
 
         <Panel title="Beschrijving">

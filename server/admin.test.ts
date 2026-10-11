@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { getProduct, PRODUCTS } from '../shared/catalog';
+import { getProduct, productPhotos, PRODUCTS } from '../shared/catalog';
 import { SITE } from '../shared/site';
 import { renderIndex } from './seo';
 import { ADMIN, adminClient, setup, signedIn } from './testUtils';
@@ -223,6 +223,11 @@ describe('content', () => {
     const order = await request(ctx.app).post('/api/orders').send({ items: [{ productId: 'velgenreiniger', quantity: 2 }], customer, acceptTerms: true });
     expect(order.status).toBe(201);
     expect((await request(ctx.app).get(`/api/orders/${order.body.orderId}`)).body.subtotal).toBe(2990);
+
+    // Several photos: the main one plus a gallery, only real image references.
+    await client.put('/api/admin/products/velgenreiniger').send({ ...product, image: 'coatings', gallery: ['javascript:alert(1)'] }).expect(400);
+    await client.put('/api/admin/products/velgenreiniger').send({ ...product, image: 'coatings', gallery: ['polijsten', 'ppf'] }).expect(200);
+    expect(productPhotos(getProduct('velgenreiniger')!)).toEqual(['coatings', 'polijsten', 'ppf']);
 
     await client.put('/api/admin/products/velgenreiniger').send({ ...product, hidden: true }).expect(200);
     await request(ctx.app).post('/api/orders').send({ items: [{ productId: 'velgenreiniger', quantity: 1 }], customer, acceptTerms: true }).expect(400);

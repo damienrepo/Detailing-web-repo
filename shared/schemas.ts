@@ -126,6 +126,7 @@ export const productSchema = z
     includes: list(z.object({ productId: slug, quantity: z.number().int().min(1).max(20) }), 10).optional(),
     badge: optionalText(40).optional(),
     image: imageRef.optional(),
+    gallery: list(imageRef, 11).optional(),
     inStock: z.boolean(),
     hidden: z.boolean().optional(),
   })

@@ -1,15 +1,93 @@
-import { Check, ChevronRight, Plus } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
-import { getBundle, getProduct, getProductBySlug, listedProducts, type Product } from '../../shared/catalog';
+import { getBundle, getProduct, getProductBySlug, listedProducts, productPhotos, type Product } from '../../shared/catalog';
 import { deliveryCountries, formatPrice, PICKUP } from '../../shared/pricing';
 import { SITE } from '../../shared/site';
 import { ProductImage } from '../components/ProductArt';
 import { ShopUsps } from '../components/ShopUsps';
 import { Button, ButtonLink, Price, QuantityStepper } from '../components/ui';
 import { useCart } from '../lib/cart';
+import { imageSrcSet, imageUrl } from '../lib/images';
 import { usePageMeta, useStructuredData } from '../lib/meta';
 import NotFound from './NotFound';
+
+/** One large photo with thumbnails below; swipe or use the arrows to browse. A single photo or the illustration otherwise. */
+function ProductPhotos({ product }: { product: Product }) {
+  const photos = productPhotos(product);
+  const [active, setActive] = useState(0);
+  const touchX = useRef<number | undefined>(undefined);
+  const badge = product.badge && <span className="eyebrow absolute left-4 top-4 bg-accent-fill px-2.5 py-1.5 text-ink">{product.badge}</span>;
+
+  if (photos.length < 2) {
+    return (
+      <div className="relative">
+        <ProductImage productId={product.id} />
+        {badge}
+      </div>
+    );
+  }
+
+  const count = photos.length;
+  const go = (i: number) => setActive((i + count) % count);
+  const current = photos[active];
+  const arrow = 'absolute top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center bg-ink/70 text-paper backdrop-blur-sm transition-opacity hover:bg-ink focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100';
+
+  return (
+    <div>
+      <div
+        className="group relative aspect-square overflow-hidden bg-paper-2"
+        role="region"
+        aria-roledescription="carrousel"
+        aria-label={`Foto’s van ${product.name}`}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowRight') go(active + 1);
+          if (e.key === 'ArrowLeft') go(active - 1);
+        }}
+        onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+        onTouchEnd={(e) => {
+          const dx = e.changedTouches[0].clientX - (touchX.current ?? e.changedTouches[0].clientX);
+          if (Math.abs(dx) > 40) go(active + (dx < 0 ? 1 : -1));
+        }}
+      >
+        <img
+          key={current}
+          src={imageUrl(current, 'sm')}
+          srcSet={imageSrcSet(current)}
+          sizes="(min-width: 768px) 55vw, 100vw"
+          alt={`${product.name} (foto ${active + 1} van ${count})`}
+          draggable={false}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        {badge}
+        <button type="button" onClick={() => go(active - 1)} className={`${arrow} left-3`} aria-label="Vorige foto">
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button type="button" onClick={() => go(active + 1)} className={`${arrow} right-3`} aria-label="Volgende foto">
+          <ChevronRight className="h-5 w-5" />
+        </button>
+        <span className="tabular absolute bottom-3 right-3 bg-ink/70 px-2 py-1 font-mono text-xs text-paper backdrop-blur-sm" aria-live="polite">
+          {active + 1} / {count}
+        </span>
+      </div>
+      <ul className="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-6">
+        {photos.map((ref, i) => (
+          <li key={`${ref}-${i}`}>
+            <button
+              type="button"
+              onClick={() => setActive(i)}
+              aria-label={`Foto ${i + 1} tonen`}
+              aria-current={i === active}
+              className={`block aspect-square w-full overflow-hidden bg-paper-2 transition-opacity ${i === active ? 'outline outline-2 outline-offset-2 outline-ink' : 'opacity-60 hover:opacity-100'}`}
+            >
+              <img src={imageUrl(ref, 'sm')} alt="" loading="lazy" className="h-full w-full object-cover" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function ProductPage() {
   const { slug } = useParams();
@@ -30,7 +108,7 @@ function ProductDetail({ product }: { product: Product }) {
     name: product.name,
     description: product.description.join(' '),
     sku: product.sku,
-    ...(product.image ? { image: location.origin + product.image } : {}),
+    ...(product.image ? { image: productPhotos(product).map((ref) => new URL(imageUrl(ref), location.origin).href) } : {}),
     brand: { '@type': 'Brand', name: SITE.fullName },
     offers: {
       '@type': 'Offer',
@@ -67,10 +145,7 @@ function ProductDetail({ product }: { product: Product }) {
       <section className="container-page grid gap-10 pb-20 md:grid-cols-12 md:gap-12 lg:gap-16">
         <div className="md:col-span-7">
           <div className="md:sticky md:top-24">
-            <div className="relative">
-              <ProductImage productId={product.id} />
-              {product.badge && <span className="eyebrow absolute left-4 top-4 bg-accent-fill px-2.5 py-1.5 text-ink">{product.badge}</span>}
-            </div>
+            <ProductPhotos product={product} />
           </div>
         </div>
 

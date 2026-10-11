@@ -420,8 +420,29 @@ export function errorFor(errors: Record<string, string>, prefix: string) {
   return errors[prefix] ?? Object.entries(errors).find(([k]) => k.startsWith(`${prefix}.`))?.[1];
 }
 
-/** Several photos in order, e.g. a project gallery. The first one is shown first. */
-export function ImageListField({ label, hint, value, onChange, max = 12, error }: { label: string; hint?: string; value: string[]; onChange: (v: string[]) => void; max?: number; error?: string }) {
+/**
+ * Several photos in order, e.g. a project gallery. The first one is shown first.
+ * Without `allowEmpty` the last photo cannot be removed.
+ */
+export function ImageListField({
+  label,
+  hint,
+  value,
+  onChange,
+  max = 12,
+  error,
+  firstLabel = 'Eerste',
+  allowEmpty = false,
+}: {
+  label: string;
+  hint?: string;
+  value: string[];
+  onChange: (v: string[]) => void;
+  max?: number;
+  error?: string;
+  firstLabel?: string;
+  allowEmpty?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const btn = 'grid h-7 w-7 place-items-center bg-ink/75 text-paper hover:bg-ink disabled:opacity-30';
   return (
@@ -432,7 +453,7 @@ export function ImageListField({ label, hint, value, onChange, max = 12, error }
         {value.map((ref, i) => (
           <li key={`${ref}-${i}`} className="relative h-24 w-32 overflow-hidden border border-paper-3 bg-paper-2">
             <img src={imageUrl(ref, 'sm')} alt="" className="h-full w-full object-cover" />
-            {i === 0 && <span className="eyebrow absolute left-1.5 top-1.5 bg-accent-fill px-1.5 py-0.5 text-[10px] text-ink">Eerste</span>}
+            {i === 0 && <span className="eyebrow absolute left-1.5 top-1.5 bg-accent-fill px-1.5 py-0.5 text-[10px] text-ink">{firstLabel}</span>}
             <div className="absolute inset-x-0 bottom-0 flex justify-between gap-1 p-1">
               <span className="flex gap-1">
                 <button type="button" className={btn} onClick={() => onChange(move(value, i, i - 1))} disabled={i === 0} aria-label={`Foto ${i + 1} naar voren`}>
@@ -442,7 +463,7 @@ export function ImageListField({ label, hint, value, onChange, max = 12, error }
                   <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
                 </button>
               </span>
-              <button type="button" className={`${btn} hover:bg-danger`} onClick={() => onChange(value.filter((_, j) => j !== i))} disabled={value.length === 1} aria-label={`Foto ${i + 1} verwijderen`}>
+              <button type="button" className={`${btn} hover:bg-danger`} onClick={() => onChange(value.filter((_, j) => j !== i))} disabled={!allowEmpty && value.length === 1} aria-label={`Foto ${i + 1} verwijderen`}>
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -456,7 +477,7 @@ export function ImageListField({ label, hint, value, onChange, max = 12, error }
               className="flex h-24 w-32 flex-col items-center justify-center gap-1 border-2 border-dashed border-paper-3 bg-white text-sm text-stone-dark hover:border-ink hover:text-ink"
             >
               <ImagePlus className="h-5 w-5" aria-hidden />
-              Foto toevoegen
+              Foto’s toevoegen
             </button>
           </li>
         )}
@@ -465,8 +486,8 @@ export function ImageListField({ label, hint, value, onChange, max = 12, error }
       {open && (
         <MediaPicker
           onClose={() => setOpen(false)}
-          onSelect={(ref) => {
-            onChange([...value, ref]);
+          onSelectMany={(refs) => {
+            onChange([...value, ...refs.filter((r) => !value.includes(r))].slice(0, max));
             setOpen(false);
           }}
         />

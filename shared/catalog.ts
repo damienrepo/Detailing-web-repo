@@ -27,6 +27,8 @@ export type Product = {
    * Square images on a light background work best. Without a photo an illustration is shown.
    */
   image?: string;
+  /** Extra photos, shown after the main photo on the product page. */
+  gallery?: string[];
   /** Set to false to show the product as sold out. */
   inStock: boolean;
   /** Hidden products are not shown or sold, but old orders keep their details. */
@@ -154,6 +156,11 @@ export const PRODUCTS: Product[] = [
 
 export function getProduct(id: string): Product | undefined {
   return PRODUCTS.find((p) => p.id === id && !p.hidden);
+}
+
+/** All photos of a product: the main photo first, then the gallery. */
+export function productPhotos(product: Pick<Product, 'image' | 'gallery'>): string[] {
+  return product.image ? [product.image, ...(product.gallery ?? [])] : [];
 }
 
 export function getProductBySlug(slug: string): Product | undefined {
