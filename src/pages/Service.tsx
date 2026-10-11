@@ -1,6 +1,8 @@
 import { Check, ChevronRight } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { CATEGORIES, getService, serviceMetaDescription, servicePriceLabel, type Comparison, type OptionGroup, type Service } from '../../shared/services';
+import { PaintLayers, PAINT_LAYERS } from '../components/PaintLayers';
+import { CoatingLayers, COATING_COLORS } from '../components/CoatingLayers';
 import { PpfCar } from '../components/PpfCar';
 import { SITE } from '../../shared/site';
 import { Reveal } from '../components/Reveal';
@@ -98,6 +100,8 @@ function ServiceDetail({ service }: { service: Service }) {
           </aside>
         </div>
       </section>
+
+      {service.explainer && <Explainer explainer={service.explainer} index={next()} />}
 
       <section className="bg-ink py-20 text-paper md:py-28">
         <div className="container-page">
@@ -253,14 +257,17 @@ function Hero({ service, categoryName, bookingUrl }: { service: Service; categor
 function Options({ group, index }: { group: OptionGroup; index: string }) {
   return (
     <div>
-      <SectionHeading tone="light" index={index} eyebrow="Opties" title={group.title} intro={group.intro} />
+      <SectionHeading tone="light" index={index} eyebrow={group.eyebrow ?? 'Opties'} title={group.title} intro={group.intro} />
       {group.style === 'coverage' ? (
         <CoverageCards group={group} />
+      ) : group.style === 'layers' ? (
+        <LayerCards group={group} />
       ) : group.style === 'cards' ? (
         <div className={`mt-14 grid gap-6 ${group.options.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
           {group.options.map((o, i) => (
             <Reveal key={o.name} delay={i * 0.06} className="h-full">
-              <article className="flex h-full flex-col border border-paper-3 bg-white">
+              <article className={`relative flex h-full flex-col border bg-white ${o.popular ? 'border-accent-fill shadow-[0_0_0_1px_var(--color-accent-fill)]' : 'border-paper-3'}`}>
+                {o.popular && <span className="eyebrow absolute right-4 top-4 z-10 bg-accent-fill px-2.5 py-1 text-ink">Meest gekozen</span>}
                 {o.image && (
                   <div className="aspect-[4/3] overflow-hidden bg-paper-3">
                     <img
@@ -349,6 +356,50 @@ function CoverageCards({ group }: { group: OptionGroup }) {
   );
 }
 
+/** Coating choices: a cross-section per option showing how many coating layers go on the paint. */
+function LayerCards({ group }: { group: OptionGroup }) {
+  return (
+    <>
+      <div className="mt-14 grid gap-6 md:grid-cols-2">
+        {group.options.map((o, i) => (
+          <Reveal key={o.name} delay={i * 0.08} className="h-full">
+            <article className={`relative flex h-full flex-col border bg-white ${o.popular ? 'border-accent-fill shadow-[0_0_0_1px_var(--color-accent-fill)]' : 'border-paper-3'}`}>
+              {o.popular && <span className="eyebrow absolute right-4 top-4 z-10 bg-accent-fill px-2.5 py-1 text-ink">Meest gekozen</span>}
+              <div className="bg-ink px-6 pb-4 pt-12">{o.layers && <CoatingLayers layers={o.layers} className="w-full" />}</div>
+              <div className="flex flex-1 flex-col p-6 md:p-8">
+                {o.label && <p className="eyebrow text-accent-strong">{o.label}</p>}
+                <h3 className="font-display mt-3 text-2xl md:text-3xl">{o.name}</h3>
+                <p className="mt-3 leading-relaxed text-stone-dark">{o.text}</p>
+                {o.items && (
+                  <ul className="mt-6 space-y-2.5 border-t border-ink/10 pt-6 text-[15px]">
+                    {o.items.map((item) => (
+                      <li key={item} className="flex gap-3">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent-strong" aria-hidden />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </article>
+          </Reveal>
+        ))}
+      </div>
+      <p className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-stone-dark">
+        <span className="flex items-center gap-2.5">
+          <span aria-hidden className="h-3 w-6" style={{ background: COATING_COLORS.base, opacity: 0.8 }} />
+          Basislaag
+        </span>
+        <span className="flex items-center gap-2.5">
+          <span aria-hidden className="h-3 w-6 border border-ink/10" style={{ background: COATING_COLORS.top }} />
+          Toplaag
+        </span>
+        De levensduur is een indicatie bij goed onderhoud.
+      </p>
+    </>
+  );
+}
+
 function ComparisonTable({ comparison: c, index }: { comparison: Comparison; index: string }) {
   return (
     <section className="bg-ink py-20 text-paper md:py-28">
@@ -389,6 +440,100 @@ function ComparisonTable({ comparison: c, index }: { comparison: Comparison; ind
           </table>
         </div>
         {c.note && <p className="mt-6 text-sm text-paper/50">{c.note}</p>}
+      </div>
+    </section>
+  );
+}
+
+/** An illustrated explanation, e.g. how polishing levels the clear coat. */
+function Explainer({ explainer: x, index }: { explainer: NonNullable<Service['explainer']>; index: string }) {
+  return (
+    <section className="bg-ink-2 py-20 text-paper md:py-28">
+      <div className="container-page grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-5">
+          <Eyebrow index={index} className="text-paper/60">
+            Zo werkt het
+          </Eyebrow>
+          <h2 className="font-display mt-5 text-[clamp(2rem,4.5vw,3.25rem)] leading-[1.02]">{x.title}</h2>
+          {x.intro && <p className="mt-6 text-[17px] leading-relaxed text-paper/65">{x.intro}</p>}
+          <ol className="mt-10 space-y-6">
+            {x.points.map((pt, i) => (
+              <li key={pt.title} className="flex gap-5">
+                <span className="tabular font-mono text-sm text-accent">{String(i + 1).padStart(2, '0')}</span>
+                <div>
+                  <h3 className="font-medium">{pt.title}</h3>
+                  <p className="mt-1 text-[15px] leading-relaxed text-paper/60">{pt.text}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {x.visual === 'paint-layers' && (
+          <div className="lg:col-span-7">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              {(['before', 'after'] as const).map((state) => (
+                <Reveal key={state} delay={state === 'after' ? 0.1 : 0}>
+                  <figure className="border border-white/10 bg-ink p-5">
+                    <figcaption className="flex items-center justify-between gap-3">
+                      <span className="eyebrow text-paper/60">{state === 'before' ? 'Voor het polijsten' : 'Na het polijsten'}</span>
+                      <span className={`text-sm ${state === 'after' ? 'text-accent' : 'text-paper/45'}`}>{state === 'before' ? 'Dof, licht breekt' : 'Glad, diepe glans'}</span>
+                    </figcaption>
+                    <PaintLayers state={state} className="mt-4 w-full" />
+                  </figure>
+                </Reveal>
+              ))}
+            </div>
+            <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+              {PAINT_LAYERS.map((layer) => (
+                <li key={layer.name} className="flex items-start gap-2.5">
+                  <span aria-hidden className="mt-1 h-3 w-3 shrink-0 border border-white/20" style={{ background: layer.color }} />
+                  <span>
+                    <span className="block text-paper">{layer.name}</span>
+                    <span className="block text-paper/45">{layer.note}</span>
+                  </span>
+                </li>
+              ))}
+              <li className="col-span-2 flex items-center gap-2.5 text-paper/60 sm:col-span-4">
+                <span aria-hidden className="h-0.5 w-6 shrink-0 bg-accent" />
+                Licht dat op de lak valt en weerkaatst
+              </li>
+            </ul>
+          </div>
+        )}
+
+        {x.visual === 'coating' && (
+          <div className="lg:col-span-7">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              {([0, 2] as const).map((layers) => (
+                <Reveal key={layers} delay={layers ? 0.1 : 0}>
+                  <figure className="border border-white/10 bg-ink p-5">
+                    <figcaption className="flex items-center justify-between gap-3">
+                      <span className="eyebrow text-paper/60">{layers ? 'Met coating' : 'Zonder coating'}</span>
+                      <span className={`text-sm ${layers ? 'text-accent' : 'text-paper/45'}`}>{layers ? 'Water parelt eraf' : 'Water blijft liggen'}</span>
+                    </figcaption>
+                    <CoatingLayers layers={layers} className="mt-4 w-full" />
+                  </figure>
+                </Reveal>
+              ))}
+            </div>
+            <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+              {[
+                { name: 'Toplaag', note: 'Glans en waterafstoting', color: COATING_COLORS.top },
+                { name: 'Basislaag', note: 'Hecht zich aan de lak', color: COATING_COLORS.base },
+                ...PAINT_LAYERS.map((layer, i) => (i === 0 ? { ...layer, note: 'Gepolijst en ontvet' } : layer)),
+              ].map((layer) => (
+                <li key={layer.name} className="flex items-start gap-2.5">
+                  <span aria-hidden className="mt-1 h-3 w-3 shrink-0 border border-white/20" style={{ background: layer.color }} />
+                  <span>
+                    <span className="block text-paper">{layer.name}</span>
+                    <span className="block text-paper/45">{layer.note}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </section>
   );

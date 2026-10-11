@@ -13,7 +13,7 @@ export const CATEGORIES: { id: ServiceCategory; name: string; title: string; int
 
 export type ServiceOption = {
   name: string;
-  /** Short highlight, e.g. "± 60% correctie" or "18 maanden". */
+  /** Short highlight, e.g. "± 60% correctie" or "Tot ± 2 jaar". */
   label?: string;
   text: string;
   items?: string[];
@@ -23,13 +23,17 @@ export type ServiceOption = {
   coverage?: 'partial' | 'front' | 'full';
   /** Marks the option customers choose most. */
   popular?: boolean;
+  /** For coatings: number of coating layers (drawn as an illustration). */
+  layers?: 1 | 2;
 };
 
 export type OptionGroup = {
   title: string;
+  /** Small label above the title; defaults to "Opties". */
+  eyebrow?: string;
   intro?: string;
-  /** Cards with a photo and checklist, compact text-only tiles, or PPF coverage drawings. */
-  style: 'cards' | 'tiles' | 'coverage';
+  /** Cards with a photo and checklist, compact tiles, PPF coverage drawings, or coating-layer drawings. */
+  style: 'cards' | 'tiles' | 'coverage' | 'layers';
   options: ServiceOption[];
 };
 
@@ -68,6 +72,8 @@ export type Service = {
   detailImage?: { src: string; alt: string };
   includes: string[];
   benefits: { title: string; text: string }[];
+  /** An illustrated explanation, e.g. what polishing does to the paint layers. */
+  explainer?: { title: string; intro?: string; visual: 'paint-layers' | 'coating'; points: { title: string; text: string }[] };
   options?: OptionGroup[];
   comparison?: Comparison;
   steps: { title: string; text: string }[];
@@ -87,51 +93,54 @@ const PAINT_CORRECTION: OptionGroup = {
       name: '1 stap',
       label: '± 60% correctie',
       text: 'Eén polijstronde met een fijne finishing polish en een zachte pad. Haalt tot ongeveer 60% van de zichtbare swirls weg en brengt de glans terug.',
-      items: ['Voor auto’s in redelijke staat', 'Maximale glans, minimale lakafname', 'Ideale basis onder een coating'],
+      items: ['Voor auto’s in redelijke staat', 'Maximale glans, minimale lakafname', 'Ideale basis onder een coating', 'Meestal binnen 1 dag klaar'],
       image: 'polijsten-stap-1',
     },
     {
       name: '2 stappen',
       label: '± 75–85% correctie',
       text: 'Eerst een snijdende compound voor krassen en swirls, daarna een finishing stap voor diepte en helderheid. De beste balans voor de meeste auto’s.',
-      items: ['Compound + finishing', 'Verwijdert het merendeel van de krassen', 'Onze meest gekozen behandeling'],
+      items: ['Compound + finishing', 'Verwijdert het merendeel van de krassen', 'Onze meest gekozen behandeling', '1 à 2 dagen'],
+      popular: true,
       image: 'polijsten-stap-2',
     },
     {
       name: '3 stappen',
       label: '± 95% correctie',
       text: 'Intensieve correctie voor lak met zware schade: zwaar snijden, medium polish, fijne finish en een ultrafijne afwerking voor een spiegelend resultaat.',
-      items: ['Voor zwaar beschadigde of verwaarloosde lak', 'Show-car resultaat', 'Advies op locatie vooraf'],
+      items: ['Voor zwaar beschadigde of verwaarloosde lak', 'Show-car resultaat', 'Advies op locatie vooraf', '2 à 3 dagen'],
       image: 'polijsten',
     },
   ],
 };
 
-const COATING_PACKAGES: OptionGroup = {
-  title: 'Pakketten',
-  intro: 'Beide pakketten beginnen met dezelfde grondige voorbereiding. Het verschil zit in de levensduur van de coating.',
-  style: 'cards',
+// TODO: check the durability figures with the Labocosmetica products you use (manufacturer's figures).
+const COATING_LAYERS: OptionGroup = {
+  title: 'Kies 1 of 2 lagen',
+  intro: 'We werken met coatings van Labocosmetica, een Italiaans topmerk in detailing. Beide opties beginnen met dezelfde grondige voorbereiding en lakcorrectie; het verschil zit in de opbouw en hoe lang de bescherming meegaat.',
+  style: 'layers',
   options: [
     {
-      name: 'Level 1 · Excellent',
-      label: 'Tot 18 maanden',
-      text: 'Volledige voorbereiding en een coating die anderhalf jaar beschermt. Een sterke keuze voor de dagelijkse rijder.',
-      items: ['Exterieur reiniging', 'Exterieur decontaminatie', 'Lakcorrectie naar keuze', 'Glascoating 18 maanden'],
-      image: 'coatings-level-1',
+      name: '1 laag',
+      label: 'Tot ± 2 jaar',
+      layers: 1,
+      text: 'Eén laag Labocosmetica-coating direct op de gepolijste lak. Diepe glans, sterk waterafstotend en makkelijk te onderhouden.',
+      items: ['Volledige voorbereiding en decontaminatie', 'Lakcorrectie naar keuze', 'Eén laag Labocosmetica-coating', 'Ideaal voor de dagelijkse rijder'],
     },
     {
-      name: 'Level 2 · Ultimate',
-      label: 'Tot 36 maanden',
-      text: 'Dezelfde voorbereiding met onze sterkste coating. Drie jaar bescherming, extra diepe glans en het hoogste water- en vuilafstotend vermogen.',
-      items: ['Exterieur reiniging', 'Exterieur decontaminatie', 'Lakcorrectie naar keuze', 'Glascoating 36 maanden'],
-      image: 'coatings-level-2',
+      name: '2 lagen',
+      label: 'Tot ± 4 jaar',
+      layers: 2,
+      popular: true,
+      text: 'Eerst een basislaag die zich hecht aan de lak, daarna een toplaag erover. Dikkere bescherming, nog meer diepte en de langste levensduur.',
+      items: ['Volledige voorbereiding en decontaminatie', 'Lakcorrectie naar keuze', 'Basislaag + toplaag van Labocosmetica', 'Maximale bescherming en levensduur'],
     },
   ],
 };
 
 const COATING_EXTRAS: OptionGroup = {
   title: 'Extra coatings',
-  intro: 'Maak de bescherming compleet. Te combineren met elk pakket.',
+  intro: 'Maak de bescherming compleet. Te combineren met zowel 1 als 2 lagen.',
   style: 'tiles',
   options: [
     { name: 'Velgen', text: 'Remstof brandt niet meer vast. Velgen zijn zelfreinigend en water- en vuilafstotend.' },
@@ -389,10 +398,11 @@ export const SERVICES: Service[] = [
     name: 'Polijsten',
     category: 'lak',
     tagline: 'Swirls en krassen weg, diepte en glans terug — zonder over te spuiten.',
-    summary: 'Machinaal polijsten in één tot drie stappen om swirls, lichte krassen en doffe plekken te verwijderen.',
+    summary: 'Machinaal polijsten in één tot drie stappen om swirls, wasstraatkrassen, hologrammen en doffe plekken te verwijderen, met laklaagdiktemeting vooraf.',
     intro: [
-      'Swirls, wasstraatkrassen en doffe plekken ontstaan ongemerkt, maar zijn in de zon direct zichtbaar. Met machinaal polijsten halen we een flinterdun laagje blanke lak weg, zodat de krassen verdwijnen en de lak weer helder en diep glanst.',
-      'Voordat we beginnen meten we de laklaagdikte, zodat we precies weten hoeveel ruimte er is. Daarna kies je samen met ons het niveau van correctie. Combineer polijsten met een glascoating om het resultaat jarenlang vast te houden.',
+      'Swirls, wasstraatkrassen, hologrammen en doffe plekken ontstaan ongemerkt: bij elke wasbeurt met een verkeerde spons, in de wasstraat of door een eerdere poetsbeurt. In de schaduw zie je ze nauwelijks, maar in de zon of onder een tankstationlamp lijkt de lak vol spinnenwebben te zitten.',
+      'Bij machinaal polijsten halen we een flinterdun laagje van de blanke lak weg, net zo lang tot de krasjes verdwenen zijn en het oppervlak weer spiegelglad is. Het licht weerkaatst dan weer gelijkmatig, en de lak krijgt zijn diepte, helderheid en kleur terug. Zonder over te spuiten: de originele fabriekslak blijft behouden.',
+      'Voordat we beginnen meten we de laklaagdikte op elk paneel, zodat we precies weten hoeveel ruimte er is. Daarna kies je samen met ons het niveau van correctie. Combineer polijsten met een glascoating om het resultaat jarenlang vast te houden.',
     ],
     fromPrice: inclVat(300),
     duration: '1 – 3 dagen',
@@ -401,75 +411,154 @@ export const SERVICES: Service[] = [
     imageAlt: 'Detailer polijst een rode Ferrari onder werkplaatslicht',
     detailImage: { src: 'polijsten-voor-na', alt: 'Voor en na polijsten: links swirls, rechts heldere lak' },
     includes: [
-      'Handwas en decontaminatie',
-      'Laklaagdiktemeting',
-      'Afplakken van rubbers en kunststof',
+      'Grondige handwas en decontaminatie met klei en ijzerverwijderaar',
+      'Laklaagdiktemeting op elk paneel',
+      'Afplakken van rubbers, sierlijsten en kunststof',
+      'Testvlak om de juiste combinatie van pad en polish te bepalen',
       'Polijsten in 1 tot 3 stappen',
-      'Inspectie onder werkplaatslicht',
-      'Advies over onderhoud',
+      'Eindcontrole onder werkplaatslicht en onderhoudsadvies',
     ],
     benefits: [
-      { title: 'Zonder overspuiten', text: 'Krassen en swirls verdwijnen, de originele lak blijft behouden.' },
-      { title: 'Gemeten', text: 'We meten de laklaagdikte, zodat we nooit meer weghalen dan nodig.' },
-      { title: 'Specialisten', text: 'Gedaan door lakcorrectiespecialisten met oog voor ieder paneel.' },
+      { title: 'Zonder overspuiten', text: 'Krassen en swirls verdwijnen, de originele fabriekslak blijft behouden.' },
+      { title: 'Gemeten', text: 'We meten de laklaagdikte per paneel en halen nooit meer weg dan nodig.' },
+      { title: 'Diepe glans', text: 'Een spiegelglad oppervlak geeft de kleur weer diepte, helderheid en een natte glans.' },
+      { title: 'Klaar voor coating', text: 'Een gepolijste lak is de perfecte basis voor een glascoating die het resultaat vastlegt.' },
     ],
-    options: [PAINT_CORRECTION],
+    explainer: {
+      title: 'Wat polijsten met je lak doet',
+      intro: 'Autolak bestaat uit meerdere lagen. Swirls en lichte krassen zitten bijna altijd in de bovenste laag, de blanke lak. Precies die laag kunnen we weer glad maken.',
+      visual: 'paint-layers',
+      points: [
+        { title: 'Krasjes breken het licht', text: 'In elke kras weerkaatst het licht een andere kant op. Daardoor oogt de lak dof en zie je in de zon spinnenwebben.' },
+        { title: 'We maken het oppervlak glad', text: 'Met machine, pad en polijstmiddel halen we een paar micrometer blanke lak weg, precies genoeg tot de krasjes weg zijn.' },
+        { title: 'Het licht weerkaatst weer egaal', text: 'Een spiegelglad oppervlak geeft diepte, helderheid en die natte glans die je kent van een nieuwe auto.' },
+        { title: 'Te diep? Dan herstellen we', text: 'Gaat een kras door de blanke lak heen (je voelt hem met je nagel), dan is plaatselijk schadeherstel nodig.' },
+      ],
+    },
+    options: [
+      {
+        eyebrow: 'Herken je dit?',
+        title: 'Wanneer is polijsten nodig?',
+        intro: 'Herken je een of meer van deze punten op je auto? Dan maakt polijsten een groot verschil.',
+        style: 'tiles',
+        options: [
+          { name: 'Swirls in de zon', text: 'Fijne, cirkelvormige krasjes die als spinnenwebben rond een lichtbron verschijnen.' },
+          { name: 'Wasstraatkrassen', text: 'Lange, rechte krasjes van borstels en vuil water in de wasstraat.' },
+          { name: 'Hologrammen', text: 'Een wazige regenboogglans, vaak na een eerdere poetsbeurt met de verkeerde techniek.' },
+          { name: 'Doffe lak', text: 'Lak die zijn diepte en kleur verloren heeft, vaak door zon, tijd en weinig onderhoud.' },
+          { name: 'Ingebrande watervlekken', text: 'Kalkringen en vlekken die met wassen niet meer weggaan.' },
+          { name: 'Verkoop of coating', text: 'Een frisse lak verhoogt de verkoopwaarde en is de basis voor een glascoating.' },
+        ],
+      },
+      PAINT_CORRECTION,
+    ],
+    comparison: {
+      title: 'Welk niveau past bij jouw auto?',
+      intro: 'Twijfel je? Geen zorgen: we bekijken de lak samen en adviseren je eerlijk, eventueel op locatie.',
+      columns: ['1 stap', '2 stappen', '3 stappen'],
+      highlight: 1,
+      rows: [
+        { label: 'Correctie', values: ['± 60%', '± 75–85%', '± 95%'] },
+        { label: 'Geschikt voor', values: ['Jonge of goed onderhouden auto’s', 'De meeste auto’s', 'Zware swirls en verwaarloosde lak'] },
+        { label: 'Resultaat', values: ['Frisse, heldere glans', 'Diepe glans, veel minder swirls', 'Show-car finish'] },
+        { label: 'Lakafname', values: ['Minimaal', 'Laag', 'Gemeten en gecontroleerd'] },
+        { label: 'Duur', values: ['± 1 dag', '1 à 2 dagen', '2 à 3 dagen'] },
+      ],
+      note: 'De exacte duur en prijs hangen af van het formaat en de staat van de auto. Je krijgt vooraf altijd een prijs op maat.',
+    },
     steps: [
-      { title: 'Inspectie', text: 'Samen bekijken we de lak onder goed licht en meten we de laklaagdikte.' },
-      { title: 'Voorbereiden', text: 'Handwas, decontaminatie met klei en ijzerverwijderaar en afplakken van randen.' },
-      { title: 'Polijsten', text: 'Paneel voor paneel polijsten in het gekozen aantal stappen.' },
-      { title: 'Oplevering', text: 'Eindcontrole onder werkplaatslicht en uitleg over het onderhoud.' },
+      { title: 'Inspectie & meting', text: 'We bekijken de lak samen onder goed licht en meten de laklaagdikte op elk paneel.' },
+      { title: 'Voorbereiden', text: 'Grondige handwas, decontaminatie met klei en ijzerverwijderaar, en afplakken van rubbers en randen.' },
+      { title: 'Testvlak', text: 'Op een klein vlak bepalen we welke combinatie van pad en polish het beste resultaat geeft.' },
+      { title: 'Polijsten', text: 'Paneel voor paneel polijsten in het gekozen aantal stappen, met tussentijdse controle.' },
+      { title: 'Eindcontrole', text: 'Ontvetten en inspecteren onder werkplaatslicht. Daarna leggen we uit hoe je de glans behoudt.' },
     ],
     faq: [
       { q: 'Hoeveel stappen heeft mijn auto nodig?', a: 'Dat hangt af van de staat van de lak en je verwachtingen. Voor de meeste auto’s is twee stappen de beste keuze. We adviseren je vooraf, eventueel op locatie.' },
+      { q: 'Wat is het verschil met poetsen of waxen?', a: 'Wax en ‘glanspoetsmiddelen’ vullen krasjes tijdelijk op; na een paar wasbeurten zijn ze terug. Bij polijsten halen we de krasjes echt weg, door het oppervlak glad te maken.' },
       { q: 'Gaan alle krassen weg?', a: 'Krassen die door de blanke lak heen gaan — die je met je nagel voelt — kunnen we niet altijd volledig wegpolijsten. Die kunnen we wel vaak plaatselijk herstellen via schadeherstel.' },
-      { q: 'Hoe lang blijft het resultaat?', a: 'Met een veilige handwas blijft de lak lang mooi. Wil je het resultaat echt vasthouden, combineer dan met een glascoating.' },
+      { q: 'Is polijsten slecht voor de lak?', a: 'Niet als het goed gebeurt. We meten de laklaagdikte vooraf en halen maar een paar micrometer weg. Daarom is polijsten veilig, en blijft er genoeg blanke lak over voor de toekomst.' },
+      { q: 'Hoe vaak kan een auto gepolijst worden?', a: 'Elke polijstbeurt haalt een fractie van de blanke lak weg. Met goed onderhoud is een volledige correctie zelden vaker dan eens in de paar jaar nodig.' },
+      { q: 'Hoe houd ik het resultaat mooi?', a: 'Was met de hand met een pH-neutrale shampoo en schone microvezel, en vermijd de wasstraat. Een glascoating of een handwas abonnement helpt om de glans jarenlang vast te houden.' },
+      { q: 'Wanneer betaal ik?', a: 'Achteraf. We lopen de auto samen na en je betaalt pas als je tevreden bent.' },
     ],
-    related: ['coatings', 'ppf', 'schadeherstel'],
+    related: ['coatings', 'ppf', 'handwas-abonnement'],
   },
   {
     id: 'coatings',
     name: 'Glascoating',
     category: 'lak',
-    tagline: 'Tot drie jaar bescherming tegen vuil, UV en weersinvloeden.',
-    summary: 'Keramische glascoating met volledige lakvoorbereiding. Waterafstotend, diepe glans en eenvoudig zelf te onderhouden, 18 of 36 maanden.',
+    tagline: 'Jarenlang glans en bescherming met een Labocosmetica-coating, in 1 of 2 lagen.',
+    summary: 'Keramische glascoating van Labocosmetica op een gepolijste lak, in 1 of 2 lagen. Diepe glans, sterk waterafstotend en makkelijk te onderhouden.',
     intro: [
-      'Een glascoating is een transparante, keramische laag op basis van nanotechnologie die zich hecht aan de lak. Hij beschermt tegen vuil, UV-straling, vogelpoep en weersinvloeden en geeft de auto een diepe, natte glans.',
-      'Waar wax na een paar weken is uitgewassen, gaat een coating bij goed onderhoud tot 36 maanden mee. Water parelt eraf en neemt het vuil mee, zodat wassen sneller en veiliger gaat. Omdat de coating de staat van de lak vastlegt, beginnen we altijd met een grondige voorbereiding en lakcorrectie.',
+      'Een glascoating is een transparante, keramische laag die zich hecht aan de lak. Hij beschermt tegen vuil, UV-straling, vogelpoep, insecten en weersinvloeden, en geeft de auto een diepe, natte glans die blijft.',
+      'Wij werken met coatings van Labocosmetica, een Italiaans merk dat in de detailingwereld bekendstaat om zijn kwaliteit. Je kiest voor 1 laag, of voor 2 lagen: een basislaag die zich aan de lak hecht met een toplaag erover, voor de dikste bescherming en de langste levensduur.',
+      'Waar wax na een paar weken is uitgewassen, gaat een coating jarenlang mee. Water parelt eraf en neemt het vuil mee, zodat wassen sneller en veiliger gaat. Omdat de coating de staat van de lak vastlegt, beginnen we altijd met een grondige voorbereiding en lakcorrectie.',
     ],
-    fromPrice: inclVat(925),
+    fromPrice: inclVat(925), // TODO: check the from-price for 1 laag
     duration: '2 – 3 dagen',
     onLocation: false,
     image: 'coatings',
     imageAlt: 'Glascoating wordt uitgepoetst op een rode Ferrari',
     detailImage: { src: 'coatings-level-2', alt: 'Zwarte Porsche Cayman met diepe glans na een glascoating' },
     includes: [
-      'Exterieur reiniging',
-      'Decontaminatie van de lak',
-      'Lakcorrectie naar keuze',
-      'Coating op de lak, 18 of 36 maanden',
+      'Handwas en decontaminatie met klei en ijzerverwijderaar',
+      'Lakcorrectie naar keuze, 1 tot 3 stappen',
+      'Ontvetten van de lak, zodat de coating optimaal hecht',
+      'Labocosmetica-coating in 1 of 2 lagen',
       'Uitharden onder gecontroleerde omstandigheden',
-      'Onderhoudsadvies',
+      'Uitleg en onderhoudsadvies bij de oplevering',
     ],
     benefits: [
-      { title: 'Minder vuilhechting', text: 'Vuil en water krijgen minder grip, de auto blijft langer schoon.' },
-      { title: 'Diepe glans', text: 'Meer diepte en reflectie dan wax of sealant.' },
-      { title: 'Lakbescherming', text: 'Beschermt tegen UV, vogelpoep, insecten en weersinvloeden.' },
-      { title: 'Makkelijk onderhoud', text: 'Wassen gaat sneller en veiliger, ook als je het zelf doet.' },
+      { title: 'Water parelt eraf', text: 'Regen en waswater rollen van de lak en nemen het vuil mee. Je auto blijft langer schoon.' },
+      { title: 'Diepe glans', text: 'Meer diepte en reflectie dan wax of sealant, en die glans blijft.' },
+      { title: 'Lakbescherming', text: 'Beschermt tegen UV, vogelpoep, insecten, pekel en weersinvloeden.' },
+      { title: 'Makkelijk onderhoud', text: 'Wassen gaat sneller en veiliger, ook als je het zelf doet. Vuil krijgt minder grip.' },
     ],
-    options: [COATING_PACKAGES, PAINT_CORRECTION, COATING_EXTRAS],
+    explainer: {
+      title: 'Wat een coating met je lak doet',
+      intro: 'Een coating vormt een harde, glasachtige laag bovenop de blanke lak. Die laag is zo glad en waterafstotend dat water er niet aan blijft hangen, maar er in parels vanaf rolt.',
+      visual: 'coating',
+      points: [
+        { title: 'Zonder coating blijft water liggen', text: 'Water en vuil hechten zich aan de lak. Vlekken drogen in en vuil zet zich vast.' },
+        { title: 'Met coating parelt het eraf', text: 'Druppels worden bolletjes die van de lak rollen en het vuil meenemen.' },
+        { title: 'Twee lagen, dikkere bescherming', text: 'Bij 2 lagen hecht een basislaag zich aan de lak en komt er een toplaag overheen. Dat geeft meer diepte en een langere levensduur.' },
+        { title: 'Combineer met PPF', text: 'Een coating stopt geen steenslag. Daarvoor is PPF; een coating erop maakt die ook vuilafstotend.' },
+      ],
+    },
+    options: [COATING_LAYERS, PAINT_CORRECTION, COATING_EXTRAS],
+    comparison: {
+      title: 'Coating, sealant of wax?',
+      intro: 'Alle drie geven glans, maar een coating gaat veel langer mee en beschermt de lak echt.',
+      columns: ['Wax', 'Sealant', 'Glascoating'],
+      highlight: 2,
+      rows: [
+        { label: 'Hoe lang', values: ['Enkele weken', 'Enkele maanden', 'Jaren'] },
+        { label: 'Water- en vuilafstotend', values: ['Kort', 'Ja', 'Sterk'] },
+        { label: 'Glans en diepte', values: ['Warm, kort', 'Goed', 'Zeer hoog'] },
+        { label: 'Bescherming tegen UV en vogelpoep', values: ['Beperkt', 'Redelijk', 'Hoog'] },
+        { label: 'Makkelijker wassen', values: ['Even', 'Ja', 'Jarenlang'] },
+        { label: 'Tegen steenslag', values: ['Nee', 'Nee', 'Nee — kies daarvoor PPF'] },
+      ],
+      note: 'De levensduur van een coating hangt af van het gebruik van de auto en het onderhoud. Met een veilige handwas haal je het meeste uit je coating.',
+    },
     steps: [
-      { title: 'Advies', text: 'We bekijken de lak samen en kiezen het pakket en de lakcorrectie die erbij passen.' },
-      { title: 'Voorbereiden', text: 'Handwas, decontaminatie en het gekozen niveau van lakcorrectie.' },
-      { title: 'Coaten', text: 'De lak wordt ontvet en de coating paneel voor paneel aangebracht en uitgepoetst.' },
-      { title: 'Uitharden', text: 'De coating hardt uit onder gecontroleerde omstandigheden voordat de auto de weg op gaat.' },
-      { title: 'Oplevering', text: 'Uitleg over wassen en onderhoud, zodat de coating zo lang mogelijk meegaat.' },
+      { title: 'Advies', text: 'We bekijken de lak samen en kiezen 1 of 2 lagen en het niveau van lakcorrectie dat erbij past.' },
+      { title: 'Wassen & decontamineren', text: 'Grondige handwas, kleien en een ijzerverwijderaar, zodat de lak volledig schoon is.' },
+      { title: 'Lakcorrectie', text: 'Swirls en krasjes polijsten we weg, want de coating legt de lak vast zoals hij is.' },
+      { title: 'Ontvetten', text: 'Alle polijstresten verwijderen we, zodat de coating zich optimaal aan de lak hecht.' },
+      { title: 'Coaten', text: 'Paneel voor paneel brengen we de coating aan en poetsen we hem uit. Bij 2 lagen volgt de toplaag na een korte uithardingstijd.' },
+      { title: 'Uitharden & oplevering', text: 'De coating hardt uit voordat de auto de weg op gaat. We leggen uit hoe je hem het beste wast.' },
     ],
     faq: [
-      { q: 'Wat is het verschil met wax?', a: 'Wax ligt op de lak en is na enkele weken uitgewassen. Een glascoating hecht zich aan de lak en gaat bij goed onderhoud 18 tot 36 maanden mee.' },
-      { q: 'Wanneer mag ik de auto weer wassen?', a: 'De eerste week laat je de coating met rust. Daarna was je met de hand met een pH-neutrale shampoo. Een wasstraat raden we af.' },
+      { q: 'Wat is het verschil tussen 1 en 2 lagen?', a: 'Bij 1 laag komt de coating direct op de gepolijste lak. Bij 2 lagen brengen we eerst een basislaag aan die zich aan de lak hecht, met daarover een toplaag. Dat geeft een dikkere bescherming, meer diepte en een langere levensduur.' },
+      { q: 'Waarom Labocosmetica?', a: 'Labocosmetica is een Italiaans merk dat in de detailingwereld bekendstaat om zijn kwaliteit en innovatie. De coatings geven een diepe glans, zijn sterk waterafstotend en goed bestand tegen weer en wasbeurten.' },
+      { q: 'Hoe lang gaat een coating mee?', a: 'Bij goed onderhoud tot ongeveer 2 jaar voor 1 laag en tot ongeveer 4 jaar voor 2 lagen. Hoe lang precies hangt af van hoeveel je rijdt, waar de auto staat en hoe je hem wast.' },
+      { q: 'Wanneer mag ik de auto weer wassen?', a: 'De eerste week laat je de coating met rust. Daarna was je met de hand met een pH-neutrale shampoo. Een wasstraat raden we af: borstels slijten de coating sneller.' },
+      { q: 'Is lakcorrectie verplicht?', a: 'Een coating legt de lak vast zoals hij is, inclusief swirls. Daarom polijsten we altijd eerst; je kiest zelf het niveau, van 1 tot 3 stappen.' },
       { q: 'Beschermt een coating tegen steenslag?', a: 'Nee, een coating is te dun om steenslag tegen te houden. Daarvoor is PPF (lakbeschermingsfolie) de juiste keuze; die combineren we vaak met een coating.' },
-      { q: 'Is lakcorrectie verplicht?', a: 'Een coating legt de lak vast zoals hij is, inclusief swirls. Daarom zit lakcorrectie altijd in de pakketten; je kiest zelf het niveau.' },
+      { q: 'Kan een coating op een nieuwe auto?', a: 'Juist. Een nieuwe auto is het perfecte moment: de lak is nog in topstaat, dus vaak volstaat een lichte correctie voordat we coaten.' },
+      { q: 'Wanneer betaal ik?', a: 'Achteraf. We lopen de auto samen na en je betaalt pas als je tevreden bent.' },
     ],
     related: ['polijsten', 'ppf', 'handwas-abonnement'],
   },
@@ -565,7 +654,7 @@ export const SERVICES: Service[] = [
         { label: 'Lichte krassen', values: ['Herstellen vanzelf', 'Minder snel', 'Nee'] },
         { label: 'Vuil- en waterafstotend', values: ['Ja, met coating erop', 'Ja', 'Kort'] },
         { label: 'Glans', values: ['Hoog of satin', 'Zeer hoog', 'Hoog'] },
-        { label: 'Hoe lang', values: ['Jarenlang', '18 – 36 maanden', 'Enkele weken'] },
+        { label: 'Hoe lang', values: ['Jarenlang', '2 – 4 jaar', 'Enkele weken'] },
       ],
       note: 'De garantie op PPF hangt af van de gekozen folie en staat in je offerte.',
     },
