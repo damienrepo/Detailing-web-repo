@@ -10,6 +10,7 @@ import {
   type ShippingMethod,
   type Totals,
 } from '../../shared/pricing';
+import { track } from './analytics';
 
 const STORAGE_KEY = 'detail2go.cart.v1';
 
@@ -86,6 +87,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...current, { productId, quantity }];
     });
+    track('add_to_cart', productId, quantity);
     setIsOpen(true);
   }, []);
 

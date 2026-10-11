@@ -3,6 +3,7 @@ import { Link, Outlet, Route, Routes, useLocation } from 'react-router';
 import { CartDrawer } from './components/CartDrawer';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
+import { useAnalytics } from './lib/analytics';
 import { CartProvider } from './lib/cart';
 import { DEMO } from './lib/demo';
 import Home from './pages/Home';
@@ -37,6 +38,11 @@ function ScrollManager() {
     }
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [pathname, hash]);
+  return null;
+}
+
+function PageTracker() {
+  useAnalytics();
   return null;
 }
 
@@ -77,6 +83,7 @@ export default function App() {
   return (
     <CartProvider>
       <ScrollManager />
+      <PageTracker />
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Home />} />

@@ -1,8 +1,11 @@
+import { useEffect } from 'react';
 import { ButtonLink } from '../components/ui';
+import { track } from '../lib/analytics';
 import { usePageMeta } from '../lib/meta';
 
 export default function NotFound() {
   usePageMeta('Pagina niet gevonden', undefined, { noindex: true });
+  useEffect(() => track('not_found'), []);
   return (
     <div className="flex min-h-[80vh] flex-col items-center justify-center bg-paper px-5 pt-24 text-center text-ink">
       <p className="eyebrow text-accent-strong">404</p>

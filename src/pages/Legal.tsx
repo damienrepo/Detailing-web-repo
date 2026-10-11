@@ -260,6 +260,15 @@ const PAGES: Record<PageId, { title: string; description: string; body: () => Re
           Deze website gebruikt geen tracking- of advertentiecookies. We slaan alleen de inhoud van je winkelwagen lokaal in
           je browser op, zodat die bewaard blijft als je de pagina opnieuw laadt. Daarvoor is geen toestemming nodig.
         </P>
+        <H2>Bezoekersstatistieken</H2>
+        <P>
+          Om de website te verbeteren houden we anonieme statistieken bij: welke pagina’s worden bekeken en hoe lang, via
+          welke website je binnenkwam, het soort apparaat en browser, en acties zoals het aanvragen van een afspraak. We
+          gebruiken daarvoor geen cookies en slaan niets op je apparaat op. Je IP-adres wordt niet bewaard: we maken er
+          samen met je browsertype een anonieme code van die elke dag wordt vervangen, zodat bezoeken niet aan jou of aan
+          elkaar over meerdere dagen te koppelen zijn. Het land schatten we aan de hand van de tijdzone van je apparaat. De
+          statistieken worden niet gedeeld en na 25 maanden verwijderd.
+        </P>
         <H2>Je rechten</H2>
         <P>
           Je hebt het recht om je gegevens in te zien, te laten corrigeren of verwijderen, en om bezwaar te maken tegen de

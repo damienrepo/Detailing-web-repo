@@ -1,5 +1,6 @@
 import {
   CalendarCheck,
+  ChartColumn,
   CreditCard,
   ExternalLink,
   FileText,
@@ -39,6 +40,7 @@ import { PostEditor, PostsPage } from './pages/Posts';
 import { ProductEditor, ProductsPage } from './pages/Products';
 import { ServiceEditor, ServicesPage } from './pages/Services';
 import { SettingsPage } from './pages/Settings';
+import { SessionPage, StatisticsPage } from './pages/Statistics';
 import { ShippingPage } from './pages/Shipping';
 import { TeamMemberEditor, TeamPage } from './pages/Team';
 
@@ -233,7 +235,13 @@ function TwoFactorScreen({ onDone, onCancel }: { onDone: (s: Session) => void; o
 // --- Shell -----------------------------------------------------------------------------
 
 const NAV: { group: string; items: { to: string; label: string; icon: typeof Home; end?: boolean }[] }[] = [
-  { group: '', items: [{ to: '/admin', label: 'Overzicht', icon: LayoutDashboard, end: true }] },
+  {
+    group: '',
+    items: [
+      { to: '/admin', label: 'Overzicht', icon: LayoutDashboard, end: true },
+      { to: '/admin/statistieken', label: 'Statistieken', icon: ChartColumn },
+    ],
+  },
   {
     group: 'Verkoop',
     items: [
@@ -337,9 +345,11 @@ function Shell({ user, onLogout, onUserChange }: { user: AdminUser; onLogout: ()
       )}
 
       <main className="min-w-0 px-4 py-8 md:px-8 md:py-10">
-        <div className={`mx-auto ${pathname.startsWith('/admin/emails') ? 'max-w-7xl' : 'max-w-5xl'}`}>
+        <div className={`mx-auto ${pathname.startsWith('/admin/emails') || pathname.startsWith('/admin/statistieken') ? 'max-w-7xl' : 'max-w-5xl'}`}>
           <Routes>
             <Route index element={<Dashboard user={user} />} />
+            <Route path="statistieken" element={<StatisticsPage />} />
+            <Route path="statistieken/bezoek/:id" element={<SessionPage />} />
             <Route path="bestellingen" element={<OrdersPage />} />
             <Route path="afspraken" element={<BookingsPage />} />
             <Route path="blog" element={<PostsPage />} />

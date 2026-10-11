@@ -2,6 +2,7 @@ import express, { type NextFunction, type Request, type RequestHandler, type Res
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
+import { buildReport, FILTER_KEYS, listSessions, sessionDetail, type Filters } from '../shared/analytics';
 import { listedProducts, PRODUCTS, type Product } from '../shared/catalog';
 import { ABOUT, SHOP, BUILTIN_IMAGES, defaultContent, HOME, serviceEdit, shippingEdit, siteEdit, type ServiceEdit, type ShippingContent } from '../shared/content';
 import { aboutSchema, emailSchema, shopSchema, homeSchema, postSchema, productSchema, serviceSchema, shippingSchema, siteSchema, teamMemberSchema } from '../shared/schemas';
@@ -10,6 +11,7 @@ import { assertShippingAvailable, priceCart, PricingError } from '../shared/pric
 import { getService, listedServices, SERVICES } from '../shared/services';
 import { SITE } from '../shared/site';
 import { bookingSchema, bookingStatusSchema, checkoutSchema, fieldErrors, shipSchema } from '../shared/validation';
+import { Analytics } from './analytics';
 import { Auth, createAuthRouter, sameOriginOnly } from './auth';
 import { createPost, deletePost, getPost, listAllPosts, listPublishedPosts, getPublishedPost, slugTaken, updatePost } from './blog';
 import type { Config } from './config';
@@ -104,6 +106,7 @@ export function createApp(deps: AppDeps) {
   const auth = deps.auth ?? new Auth(db, cipher, config.production && config.appUrl.startsWith('https://'));
   const content = deps.content ?? new ContentStore(db);
   const media = new MediaStore(db, config.uploadsDir);
+  const analytics = new Analytics(db);
   const fixedPayments = deps.payments;
   const getPayments =
     typeof fixedPayments === 'function'
@@ -327,6 +330,29 @@ export function createApp(deps: AppDeps) {
     res.json(listVisibleTeam(db));
   });
 
+  // --- Statistics (public) -----------------------------------------------
+
+  // Sent with navigator.sendBeacon as text/plain, so it is parsed here rather than by express.json.
+  api.post('/collect', rateLimit(600, 10 * 60_000), express.text({ type: () => true, limit: '4kb' }), (req, res) => {
+    const origin = req.get('origin');
+    let sameSite = true;
+    try {
+      sameSite = !origin || new URL(origin).host === req.get('host');
+    } catch {
+      sameSite = false;
+    }
+    // Our own visits while signed in to the admin would only skew the numbers.
+    if (sameSite && !signedIn(req)) {
+      try {
+        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        analytics.collect(body, { ip: req.ip ?? '', userAgent: req.get('user-agent') ?? '', host: req.get('host') ?? '' });
+      } catch (err) {
+        if (!(err instanceof SyntaxError)) console.error('[analytics]', err);
+      }
+    }
+    res.status(204).end();
+  });
+
   // --- Admin -------------------------------------------------------------
 
   const admin = express.Router();
@@ -422,6 +448,54 @@ export function createApp(deps: AppDeps) {
     if (!parsed.success) throw new HttpError(400, 'Ongeldige status');
     db.prepare('UPDATE bookings SET status = ? WHERE id = ?').run(parsed.data.status, Number(req.params.id));
     res.json(db.prepare('SELECT * FROM bookings WHERE id = ?').get(Number(req.params.id)));
+  });
+
+  // Statistics.
+
+  const statsQuery = z
+    .object({
+      from: z.coerce.number().int().min(0),
+      to: z.coerce.number().int().min(0),
+      tz: z.string().max(64).regex(/^[\w+\-/]+$/).catch('Europe/Amsterdam'),
+      offset: z.coerce.number().int().min(0).max(1_000_000).catch(0),
+    })
+    .refine((q) => q.to > q.from && q.to - q.from <= 400 * 86_400_000, { message: 'Kies een periode van maximaal een jaar.', path: ['from'] });
+
+  const statsOptions = (req: Request) => {
+    const q = parse(statsQuery, req.query);
+    const filters: Filters = {};
+    for (const key of FILTER_KEYS) {
+      const value = req.query[key];
+      if (typeof value === 'string' && value && value.length <= 200) filters[key] = value;
+    }
+    return { from: q.from, to: q.to, tz: q.tz ?? 'Europe/Amsterdam', offset: q.offset ?? 0, filters, shopEnabled: SHOP.enabled };
+  };
+
+  admin.get('/analytics', (req, res) => {
+    const options = statsOptions(req);
+    res.json({ ...buildReport(analytics.load(options.from, options.to), options), hasData: analytics.hasData() });
+  });
+
+  admin.get('/analytics/sessions', (req, res) => {
+    const options = statsOptions(req);
+    res.json(listSessions(analytics.load(options.from, options.to), options, options.offset));
+  });
+
+  admin.get('/analytics/sessions/:id', (req, res) => {
+    const id = Number(req.params.id);
+    const detail = Number.isInteger(id) ? sessionDetail(analytics.loadSession(id), id) : null;
+    if (!detail) throw new HttpError(404, 'Dit bezoek bestaat niet (meer).');
+    res.json(detail);
+  });
+
+  admin.get('/analytics/live', (_req, res) => {
+    res.json(analytics.live());
+  });
+
+  admin.delete('/analytics', (req, res) => {
+    analytics.clear();
+    audit(req, 'analytics_cleared');
+    res.json({ ok: true });
   });
 
   // Integrations: Mollie and e-mail.

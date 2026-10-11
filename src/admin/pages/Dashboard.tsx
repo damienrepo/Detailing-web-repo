@@ -1,11 +1,15 @@
-import { ArrowRight, CalendarCheck, CheckCircle2, Circle, FileText, Package, ShoppingBag } from 'lucide-react';
+import { ArrowRight, CalendarCheck, ChartColumn, CheckCircle2, Circle, FileText, Package, ShoppingBag } from 'lucide-react';
+import { useMemo } from 'react';
 import { Link } from 'react-router';
+import type { Report } from '../../../shared/analytics';
 import type { Order } from '../../../server/orders';
 import { formatPrice } from '../../../shared/pricing';
 import { SITE } from '../../../shared/site';
 import type { AdminUser } from '../AdminApp';
 import { Loading, PageHeader, Panel, useAdminData } from '../kit';
 import { ShopSwitch } from '../ShopSwitch';
+import { Delta } from '../stats/charts';
+import { fmtDuration, fmtNumber, pageName } from '../stats/format';
 import type { Booking } from './Orders';
 import type { SettingsResponse } from './Settings';
 
@@ -62,6 +66,8 @@ export function Dashboard({ user }: { user: AdminUser }) {
         {stat('/admin/bestellingen', Package, formatPrice(revenue), `omzet webshop deze maand (${thisMonth.length} bestellingen)`)}
       </div>
 
+      <WebsiteWeek />
+
       <div className="mt-8">
         <ShopSwitch />
       </div>
@@ -96,5 +102,47 @@ export function Dashboard({ user }: { user: AdminUser }) {
         </div>
       </Panel>
     </>
+  );
+}
+
+/** The last seven days of website statistics, compared with the seven days before. */
+function WebsiteWeek() {
+  const path = useMemo(() => {
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+    from.setDate(from.getDate() - 6);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Amsterdam';
+    return `/admin/analytics?${new URLSearchParams({ from: String(from.getTime()), to: String(Date.now()), tz })}`;
+  }, []);
+  const { data } = useAdminData<Report & { hasData: boolean }>(path);
+  if (!data?.hasData) return null;
+  const top = data.pages[0];
+  const figures = [
+    { label: 'bezoekers', value: fmtNumber(data.totals.visitors), now: data.totals.visitors, before: data.previous.visitors },
+    { label: 'gem. bezoekduur', value: fmtDuration(data.totals.avgDuration), now: data.totals.avgDuration, before: data.previous.avgDuration },
+    { label: 'conversies', value: fmtNumber(data.totals.conversions), now: data.totals.conversions, before: data.previous.conversions },
+  ];
+  return (
+    <Link to="/admin/statistieken?periode=7d" className="group mt-4 flex items-center gap-4 border border-paper-3 bg-white p-5 transition-colors hover:border-ink">
+      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-8 gap-y-3">
+      <span className="flex items-center gap-3">
+        <ChartColumn className="h-6 w-6 shrink-0 text-stone-dark" strokeWidth={1.5} aria-hidden />
+        <span className="text-sm font-medium">Website, laatste 7 dagen</span>
+      </span>
+      {figures.map((f) => (
+        <span key={f.label} className="flex items-baseline gap-2">
+          <span className="text-xl font-semibold">{f.value}</span>
+          <span className="text-sm text-stone-dark">{f.label}</span>
+          <Delta now={f.now} before={f.before} />
+        </span>
+      ))}
+      {top && (
+        <span className="min-w-0 text-sm text-stone-dark">
+          Populairst: <span className="text-ink">{pageName(top.path, top.title)}</span>
+        </span>
+      )}
+      </span>
+      <ArrowRight className="h-4 w-4 shrink-0 text-stone-dark transition-transform group-hover:translate-x-0.5" aria-hidden />
+    </Link>
   );
 }

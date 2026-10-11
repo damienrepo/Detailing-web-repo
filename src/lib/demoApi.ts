@@ -255,9 +255,29 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
     const mail = sampleMail(body.kind, body.settings, location.origin, 'demo@detail2go.nl');
     return { subject: mail.subject, html: mail.html, text: mail.text } as T;
   }
+  if (path.startsWith('/admin/analytics') && method === 'GET') return (await demoStatistics(path)) as T;
   if (path.startsWith('/admin/')) throw new ApiError('Dit is een demo: wijzigingen worden niet opgeslagen.', 400);
 
   throw new ApiError('Niet gevonden', 404);
+}
+
+/** Statistics in the demo: made-up visits, run through the same report code as the server. */
+let demoStats: import('../../shared/analytics').RawData | undefined;
+async function demoStatistics(path: string) {
+  const [{ buildReport, listSessions, sessionDetail, FILTER_KEYS }, { demoAnalytics }] = await Promise.all([import('../../shared/analytics'), import('../../shared/analyticsDemo')]);
+  demoStats ??= demoAnalytics();
+  if (path === '/admin/analytics/live') return { visitors: 3, pages: [{ path: '/', count: 1 }, { path: '/diensten/polijsten', count: 1 }, { path: '/shop', count: 1 }] };
+  const session = /^\/admin\/analytics\/sessions\/(\d+)$/.exec(path);
+  if (session) {
+    const detail = sessionDetail(demoStats, Number(session[1]));
+    if (!detail) throw new ApiError('Dit bezoek bestaat niet (meer).', 404);
+    return detail;
+  }
+  const query = new URLSearchParams(path.split('?')[1] ?? '');
+  const filters = Object.fromEntries(FILTER_KEYS.filter((k) => query.get(k)).map((k) => [k, query.get(k)!]));
+  const options = { from: Number(query.get('from')), to: Number(query.get('to')), tz: query.get('tz') || 'Europe/Amsterdam', filters, shopEnabled: SHOP.enabled };
+  if (path.startsWith('/admin/analytics/sessions')) return listSessions(demoStats, options, Number(query.get('offset')) || 0);
+  return { ...buildReport(demoStats, options), hasData: true };
 }
 
 let demoSignedIn = false;

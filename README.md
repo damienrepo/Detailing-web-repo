@@ -33,6 +33,7 @@ Open `/admin`, enter the code and create your account. After that the code is go
 | Section               | What you can do                                                          |
 | --------------------- | ------------------------------------------------------------------------ |
 | Overzicht             | To-dos (orders to ship, new bookings) and a go-live checklist             |
+| Statistieken          | Visitors, sources, pages, time on page, actions, funnels, single visits   |
 | Bestellingen          | Mark orders as shipped (mails the customer), cancel, export to Excel      |
 | Afspraken             | Booking requests and their status                                         |
 | Blog                  | Write, schedule and publish posts (with photos and simple formatting)     |
@@ -62,6 +63,15 @@ the defaults in `shared/`.
   HTML. Uploads must be real JPEGs and get random names.
 - Every sign-in, failed attempt and change is in the activity log (never the
   secret values themselves).
+
+### Statistics
+
+The site measures its own visitors without cookies, so no cookie banner is needed
+(`src/lib/analytics.ts` sends, `server/analytics.ts` stores, `shared/analytics.ts`
+builds the report). IP addresses are never stored: a visitor is recognised for one
+day by a hash with a salt that is replaced every night. Your own visits don't count
+while you're signed in to the admin; test in a private window. Data older than 25
+months is deleted automatically, and *Alle statistieken wissen* clears it after testing.
 
 ### Locked out?
 

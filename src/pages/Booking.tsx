@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router';
 import { CATEGORIES, getService, listedServices, nameInSentence, servicePriceLabel, servicesIn } from '../../shared/services';
 import { SITE } from '../../shared/site';
 import { Button, ButtonLink, Eyebrow, Input, Notice, Select, Textarea } from '../components/ui';
+import { track } from '../lib/analytics';
 import { api, ApiError } from '../lib/api';
 import { usePageMeta } from '../lib/meta';
 
@@ -48,6 +49,7 @@ export default function Booking() {
     setFormError(undefined);
     try {
       await api('/bookings', { body: form });
+      track('booking', form.serviceId);
       setDone(true);
       window.scrollTo({ top: 0 });
     } catch (err) {

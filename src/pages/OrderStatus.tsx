@@ -5,6 +5,7 @@ import { formatPrice, PICKUP, pickupLocation, SHIPPING } from '../../shared/pric
 import { SITE } from '../../shared/site';
 import type { PublicOrder } from '../../server/orders';
 import { Button, ButtonLink, Notice } from '../components/ui';
+import { track } from '../lib/analytics';
 import { api, ApiError } from '../lib/api';
 import { useCart } from '../lib/cart';
 import { goToPayment } from '../lib/demo';
@@ -34,6 +35,8 @@ export default function OrderStatus() {
         if (cancelled) return;
         setOrder(data);
         if (data.status === 'paid' || data.status === 'shipped') clearCart.current();
+        // Counted once per order on the server, however often this page is opened.
+        if (['paid', 'shipped', 'ready', 'collected'].includes(data.status)) track('purchase', data.number, data.total);
         // A payment can stay "open" for a moment after returning from the bank.
         if (data.status === 'open' && polls.current++ < POLL_LIMIT) timer = setTimeout(load, POLL_MS);
       } catch (err) {

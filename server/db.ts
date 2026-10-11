@@ -134,6 +134,51 @@ const MIGRATIONS: string[] = [
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );`,
+  // Cookieless website statistics (see server/analytics.ts). Times are epoch milliseconds.
+  `CREATE TABLE analytics_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    visitor TEXT NOT NULL,
+    started_at INTEGER NOT NULL,
+    last_seen_at INTEGER NOT NULL,
+    entry_path TEXT NOT NULL,
+    channel TEXT NOT NULL,
+    referrer TEXT,
+    utm_campaign TEXT,
+    device TEXT NOT NULL,
+    browser TEXT NOT NULL,
+    os TEXT NOT NULL,
+    country TEXT NOT NULL,
+    language TEXT NOT NULL
+  );
+  CREATE INDEX analytics_sessions_started ON analytics_sessions(started_at);
+  CREATE INDEX analytics_sessions_visitor ON analytics_sessions(visitor, last_seen_at);
+  CREATE TABLE analytics_pageviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL REFERENCES analytics_sessions(id) ON DELETE CASCADE,
+    client_id TEXT NOT NULL UNIQUE,
+    path TEXT NOT NULL,
+    title TEXT,
+    created_at INTEGER NOT NULL,
+    duration INTEGER NOT NULL DEFAULT 0,
+    scroll INTEGER,
+    load_ms INTEGER
+  );
+  CREATE INDEX analytics_pageviews_session ON analytics_pageviews(session_id);
+  CREATE TABLE analytics_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL REFERENCES analytics_sessions(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    path TEXT NOT NULL,
+    label TEXT,
+    value INTEGER,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX analytics_events_session ON analytics_events(session_id);
+  CREATE INDEX analytics_events_name ON analytics_events(name, label);
+  CREATE TABLE analytics_salt (
+    day TEXT PRIMARY KEY,
+    salt TEXT NOT NULL
+  );`,
 ];
 
 export function openDb(file: string): Db {

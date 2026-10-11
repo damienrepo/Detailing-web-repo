@@ -15,6 +15,7 @@ import { SITE } from '../../shared/site';
 import { FreeShippingMeter } from '../components/CartDrawer';
 import { ProductImage } from '../components/ProductArt';
 import { Button, ButtonLink, Input, Notice, Select, Textarea } from '../components/ui';
+import { track } from '../lib/analytics';
 import { api, ApiError } from '../lib/api';
 import { useCart } from '../lib/cart';
 import { DEMO, goToPayment } from '../lib/demo';
@@ -97,6 +98,7 @@ export default function Checkout() {
       const { checkoutUrl } = await api<{ checkoutUrl: string }>('/orders', {
         body: { items: cart.items, shippingMethod: method, customer: { ...form, country }, acceptTerms },
       });
+      track('checkout', null, totals.total);
       goToPayment(checkoutUrl, navigate);
     } catch (err) {
       setSubmitting(false);

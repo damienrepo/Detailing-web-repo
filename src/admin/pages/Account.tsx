@@ -39,6 +39,7 @@ const ACTIONS: Record<string, string> = {
   team_member_deleted: 'Teamlid verwijderd',
   media_uploaded: 'Afbeelding geüpload',
   media_deleted: 'Afbeelding verwijderd',
+  analytics_cleared: 'Statistieken gewist',
 };
 
 const SETTING_LABELS: Record<string, string> = {
