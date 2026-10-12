@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Link, Outlet, Route, Routes, useLocation } from 'react-router';
 import { CartDrawer } from './components/CartDrawer';
+import { ContactWidget } from './components/ContactWidget';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { useAnalytics } from './lib/analytics';
@@ -57,6 +58,7 @@ function Layout() {
       </main>
       <Footer />
       {SHOP.enabled && <CartDrawer />}
+      <ContactWidget />
       {DEMO && <DemoBadge />}
     </>
   );
