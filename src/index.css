@@ -28,6 +28,11 @@
 }
 
 @layer base {
+  /* English on a first visit: hidden for a moment until the translations are in (see src/lib/i18n.ts). */
+  html.i18n-loading body {
+    visibility: hidden;
+  }
+
   html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;

@@ -1,8 +1,9 @@
 import { Menu, ShoppingBag, X } from 'lucide-react';
 import { SHOP } from '../../shared/content';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
 import { useCart } from '../lib/cart';
+import { useLanguage } from '../lib/i18n';
 import { Logo } from './Logo';
 import { ButtonLink } from './ui';
 
@@ -66,6 +67,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2 md:gap-4">
+          <LanguageSwitch />
           {SHOP.enabled && (
             <button
               type="button"
@@ -122,5 +124,34 @@ export function Header() {
         </div>
       </nav>
     </header>
+  );
+}
+
+/** NL / EN, only shown when the server can translate. The labels themselves are never translated. */
+function LanguageSwitch() {
+  const { lang, available, setLanguage } = useLanguage();
+  if (!available) return null;
+  const options = [
+    { id: 'nl', label: 'NL', name: 'Nederlands' },
+    { id: 'en', label: 'EN', name: 'English' },
+  ] as const;
+  return (
+    <div translate="no" role="group" aria-label="Taal / Language" className="flex items-center text-[13px] font-medium tracking-[0.06em]">
+      {options.map((o, i) => (
+        <Fragment key={o.id}>
+          {i > 0 && <span aria-hidden className="text-paper/25">/</span>}
+          <button
+            type="button"
+            onClick={() => setLanguage(o.id)}
+            aria-pressed={lang === o.id}
+            aria-label={o.name}
+            lang={o.id}
+            className={`grid h-11 w-8 place-items-center transition-colors ${lang === o.id ? 'text-paper' : 'text-paper/45 hover:text-paper'}`}
+          >
+            {o.label}
+          </button>
+        </Fragment>
+      ))}
+    </div>
   );
 }

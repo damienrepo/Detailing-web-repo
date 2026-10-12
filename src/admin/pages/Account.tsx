@@ -26,6 +26,7 @@ const ACTIONS: Record<string, string> = {
   account_created: 'Account aangemaakt',
   setup_failed: 'Onjuiste setupcode gebruikt',
   settings_changed: 'Instellingen gewijzigd',
+  translations_cleared: 'Vertalingen gewist',
   content_changed: 'Inhoud aangepast',
   content_reset: 'Inhoud teruggezet naar standaard',
   product_created: 'Product toegevoegd',
@@ -44,6 +45,7 @@ const ACTIONS: Record<string, string> = {
 
 const SETTING_LABELS: Record<string, string> = {
   mollieApiKey: 'Mollie API-key',
+  anthropicApiKey: 'Anthropic API-key (vertalen)',
   smtpHost: 'SMTP-server',
   smtpPort: 'poort',
   smtpSecure: 'beveiliging',

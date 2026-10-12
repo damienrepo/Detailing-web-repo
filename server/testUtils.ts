@@ -1,6 +1,6 @@
 // Shared setup for the server tests.
 import request from 'supertest';
-import { createApp } from './app';
+import { createApp, type AppDeps } from './app';
 import { Auth } from './auth';
 import { loadConfig, type Config } from './config';
 import { openDb } from './db';
@@ -13,14 +13,14 @@ export const ADMIN = { email: 'beheer@example.com', name: 'Beheer', password: 'l
 /** Requests to admin routes must look like they come from our own pages. */
 export const HOST = 'shop.test';
 
-export function setup(overrides: Partial<Config> = {}) {
+export function setup(overrides: Partial<Config> = {}, extra: Partial<AppDeps> = {}) {
   const config = { ...loadConfig({}), notifyEmail: 'shop@example.com', ...overrides };
   const db = openDb(':memory:');
   const cipher = createCipher(crypto.randomBytes(32));
   const auth = new Auth(db, cipher, false);
   const payments = new MockProvider(config.appUrl);
   const sent: Mail[] = [];
-  const app = createApp({ config, db, cipher, auth, payments, mailer: { send: async (m) => void sent.push(m) } });
+  const app = createApp({ config, db, cipher, auth, payments, mailer: { send: async (m) => void sent.push(m) }, ...extra });
   return { app, db, auth, cipher, payments, sent, config };
 }
 

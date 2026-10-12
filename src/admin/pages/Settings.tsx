@@ -2,11 +2,14 @@ import { CheckCircle2, ExternalLink, Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button, Input, Select } from '../../components/ui';
 import { api } from '../../lib/api';
+import { confirmAction } from '../../lib/demo';
 import { ErrorBox, Loading, PageHeader, Panel, SaveBar, StatusBadge, useAdminData, useSave, useUnsavedWarning, useToast } from '../kit';
 
 type Field = { value?: string; hint?: string; set: boolean; fromEnv: boolean };
-type Key = 'mollieApiKey' | 'smtpHost' | 'smtpPort' | 'smtpSecure' | 'smtpUser' | 'smtpPass' | 'mailFrom' | 'notifyEmail';
-export type SettingsResponse = { values: Record<Key, Field>; payments: 'live' | 'test' | 'mock' | 'off'; webhooks: boolean };
+type Key = 'mollieApiKey' | 'anthropicApiKey' | 'smtpHost' | 'smtpPort' | 'smtpSecure' | 'smtpUser' | 'smtpPass' | 'mailFrom' | 'notifyEmail';
+export type SettingsResponse = { values: Record<Key, Field>; payments: 'live' | 'test' | 'mock' | 'off'; webhooks: boolean; translations: number };
+
+type Secret = 'mollieApiKey' | 'anthropicApiKey' | 'smtpPass';
 
 const PLAIN: Key[] = ['smtpHost', 'smtpPort', 'smtpSecure', 'smtpUser', 'mailFrom', 'notifyEmail'];
 
@@ -82,10 +85,10 @@ export function SettingsPage() {
   const toast = useToast();
   const { data, setData, error, reload } = useAdminData<SettingsResponse>('/admin/settings');
   const [plain, setPlain] = useState<Partial<Record<Key, string>>>({});
-  const [secrets, setSecrets] = useState<Partial<Record<'mollieApiKey' | 'smtpPass', string>>>({});
+  const [secrets, setSecrets] = useState<Partial<Record<Secret, string>>>({});
   const save = useSave();
-  const [testing, setTesting] = useState<'mollie' | 'mail'>();
-  const [testResult, setTestResult] = useState<{ kind: 'mollie' | 'mail'; ok: boolean; message: string }>();
+  const [testing, setTesting] = useState<'mollie' | 'mail' | 'translate'>();
+  const [testResult, setTestResult] = useState<{ kind: 'mollie' | 'mail' | 'translate'; ok: boolean; message: string }>();
 
   useEffect(() => {
     if (!data) return;
@@ -95,12 +98,18 @@ export function SettingsPage() {
 
   const original = data ? Object.fromEntries(PLAIN.map((k) => [k, data.values[k].value ?? (k === 'smtpSecure' ? 'false' : '')])) : {};
   const changedPlain = PLAIN.filter((k) => !data?.values[k].fromEnv && (plain[k] ?? '') !== (original[k] ?? ''));
-  const changedSecrets = (Object.keys(secrets) as ('mollieApiKey' | 'smtpPass')[]).filter((k) => secrets[k] !== undefined && secrets[k] !== '');
+  const changedSecrets = (Object.keys(secrets) as Secret[]).filter((k) => secrets[k] !== undefined && secrets[k] !== '');
   const dirty = changedPlain.length + changedSecrets.length > 0;
   useUnsavedWarning(dirty);
 
   if (!data) return error ? <ErrorBox message={error} onRetry={reload} /> : <Loading />;
   const v = data.values;
+
+  async function clearTranslations() {
+    if (!confirmAction('Alle bewaarde vertalingen wissen? Ze worden opnieuw gemaakt zodra iemand de Engelse versie bekijkt.')) return;
+    const result = await save.run(() => api<SettingsResponse>('/admin/translations', { method: 'DELETE' }), 'Vertalingen gewist');
+    if (result) setData(result);
+  }
 
   async function submit() {
     const body: Record<string, string> = {};
@@ -110,7 +119,7 @@ export function SettingsPage() {
     if (result) setData(result);
   }
 
-  async function test(kind: 'mollie' | 'mail') {
+  async function test(kind: 'mollie' | 'mail' | 'translate') {
     setTesting(kind);
     setTestResult(undefined);
     try {
@@ -118,6 +127,10 @@ export function SettingsPage() {
         const typed = secrets.mollieApiKey && secrets.mollieApiKey !== '__remove__' ? secrets.mollieApiKey : undefined;
         const res = await api<{ mode: string }>('/admin/settings/test-mollie', { body: { apiKey: typed } });
         setTestResult({ kind, ok: true, message: `De koppeling met Mollie werkt (${res.mode === 'live' ? 'live: echte betalingen' : 'testmodus'}).` });
+      } else if (kind === 'translate') {
+        const typed = secrets.anthropicApiKey && secrets.anthropicApiKey !== '__remove__' ? secrets.anthropicApiKey : undefined;
+        const res = await api<{ sample: string }>('/admin/settings/test-translate', { body: { apiKey: typed } });
+        setTestResult({ kind, ok: true, message: `Het werkt: ‘Vraag vrijblijvend een afspraak aan’ wordt ‘${res.sample}’.` });
       } else {
         const res = await api<{ to: string }>('/admin/settings/test-mail', { body: {} });
         setTestResult({ kind, ok: true, message: `Testmail verstuurd naar ${res.to}. Kijk ook in je spam.` });
@@ -141,7 +154,7 @@ export function SettingsPage() {
       <Input label={label} value={plain[k] ?? ''} error={save.errors[k]} {...props} onChange={(e) => setPlain((p) => ({ ...p, [k]: e.target.value }))} />
     );
 
-  const result = (kind: 'mollie' | 'mail') =>
+  const result = (kind: 'mollie' | 'mail' | 'translate') =>
     testResult?.kind === kind && <p className={`text-sm ${testResult.ok ? 'text-[#2f6b4f]' : 'text-danger'}`}>{testResult.message}</p>;
 
   const paymentBadge = {
@@ -218,6 +231,43 @@ export function SettingsPage() {
             </Button>
             {dirty && <span className="text-sm text-stone-dark">Sla eerst op om te testen.</span>}
             {result('mail')}
+          </div>
+        </Panel>
+
+        <Panel
+          title="Engelse versie (automatisch vertalen)"
+          description={
+            <>
+              Met een API-key van Anthropic krijgt de site rechtsboven een <strong>NL / EN</strong>-knop. Alle teksten, ook wat je hier in het beheer schrijft, worden dan automatisch naar het Engels vertaald door Claude. Elke tekst wordt één keer vertaald en bewaard. Maak een key aan in de{' '}
+              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline underline-offset-2">
+                Anthropic Console <ExternalLink className="h-3 w-3" aria-hidden />
+              </a>{' '}
+              en zet er wat tegoed op; de hele site vertalen kost naar schatting minder dan een euro.
+            </>
+          }
+        >
+          <div className="flex items-center gap-2 text-sm">
+            Status: {v.anthropicApiKey.set ? <StatusBadge tone="ok">Aan</StatusBadge> : <StatusBadge tone="muted">Uit: alleen Nederlands</StatusBadge>}
+            {v.anthropicApiKey.set && <span className="text-stone-dark">· {data.translations} {data.translations === 1 ? 'tekst' : 'teksten'} vertaald</span>}
+          </div>
+          <SecretField
+            label="API-key"
+            field={v.anthropicApiKey}
+            value={secrets.anthropicApiKey}
+            onChange={(val) => setSecrets((s) => ({ ...s, anthropicApiKey: val }))}
+            placeholder="sk-ant-…"
+            error={save.errors.anthropicApiKey}
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="outline-dark" className="h-10 text-sm" onClick={() => test('translate')} disabled={testing === 'translate' || (!v.anthropicApiKey.set && !secrets.anthropicApiKey)}>
+              {testing === 'translate' ? 'Testen…' : 'Test het vertalen'}
+            </Button>
+            {data.translations > 0 && (
+              <button type="button" className="text-sm text-stone-dark underline underline-offset-2 hover:text-danger" onClick={clearTranslations}>
+                Alle vertalingen opnieuw laten maken
+              </button>
+            )}
+            {result('translate')}
           </div>
         </Panel>
 

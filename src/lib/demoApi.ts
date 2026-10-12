@@ -221,8 +221,8 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
   if (path === '/admin/account') return { user: DEMO_USER, sessions: [{ current: true, createdAt: now(), lastSeenAt: now(), ip: null, device: 'Deze browser' }], audit: [] } as T;
   if (path === '/admin/settings') {
     const field = { set: false, fromEnv: false };
-    const keys = ['mollieApiKey', 'smtpHost', 'smtpPort', 'smtpSecure', 'smtpUser', 'smtpPass', 'mailFrom', 'notifyEmail'];
-    return { values: Object.fromEntries(keys.map((k) => [k, field])), payments: 'mock', webhooks: false } as T;
+    const keys = ['mollieApiKey', 'anthropicApiKey', 'smtpHost', 'smtpPort', 'smtpSecure', 'smtpUser', 'smtpPass', 'mailFrom', 'notifyEmail'];
+    return { values: Object.fromEntries(keys.map((k) => [k, field])), payments: 'mock', webhooks: false, translations: 0 } as T;
   }
   if (path === '/admin/content' && method === 'GET') {
     return {

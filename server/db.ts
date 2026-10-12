@@ -179,6 +179,14 @@ const MIGRATIONS: string[] = [
     day TEXT PRIMARY KEY,
     salt TEXT NOT NULL
   );`,
+  // Stored machine translations of the site's texts (see server/translate.ts).
+  `CREATE TABLE translations (
+    lang TEXT NOT NULL,
+    source TEXT NOT NULL,
+    text TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (lang, source)
+  ) WITHOUT ROWID;`,
 ];
 
 export function openDb(file: string): Db {

@@ -5,6 +5,7 @@ import { applyContent } from '../shared/content';
 import App from './App.tsx';
 import './index.css';
 import { DEMO } from './lib/demo';
+import { initLanguage } from './lib/i18n';
 
 // Content edited in the admin is embedded in the page by the server; apply it before the first render.
 try {
@@ -13,6 +14,9 @@ try {
 } catch {
   // Fall back to the built-in content.
 }
+
+// English, when chosen before: start translating before the first render to avoid a flash of Dutch.
+if (!DEMO) initLanguage();
 
 // The demo runs inside a hosted preview frame whose URL it cannot change, so it routes in memory.
 const Router = DEMO ? MemoryRouter : BrowserRouter;

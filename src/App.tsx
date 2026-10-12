@@ -7,6 +7,7 @@ import { Header } from './components/Header';
 import { useAnalytics } from './lib/analytics';
 import { CartProvider } from './lib/cart';
 import { DEMO } from './lib/demo';
+import { startTranslation, stopTranslation, useLanguage } from './lib/i18n';
 import Home from './pages/Home';
 import Services from './pages/Services';
 import ServicePage from './pages/Service';
@@ -48,6 +49,14 @@ function PageTracker() {
 }
 
 function Layout() {
+  const { lang } = useLanguage();
+  // The admin is not translated: stop when leaving the public pages, resume when coming back.
+  useEffect(() => {
+    if (lang !== 'en') return;
+    startTranslation();
+    return () => stopTranslation();
+  }, [lang]);
+
   return (
     <>
       <Header />

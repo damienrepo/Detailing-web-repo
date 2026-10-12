@@ -9,6 +9,7 @@ export type SettingKey = keyof typeof FIELDS;
 
 const FIELDS = {
   mollieApiKey: { secret: true },
+  anthropicApiKey: { secret: true },
   smtpHost: { secret: false },
   smtpPort: { secret: false },
   smtpSecure: { secret: false },
@@ -26,6 +27,7 @@ const optional = <T extends z.ZodTypeAny>(schema: T) => schema.or(z.literal(''))
 export const settingsInputSchema = z
   .object({
     mollieApiKey: optional(z.string().trim().regex(/^(test|live)_[A-Za-z0-9]{20,}$/, 'Een Mollie API-key begint met test_ of live_')),
+    anthropicApiKey: optional(z.string().trim().regex(/^sk-ant-[A-Za-z0-9_-]{20,}$/, 'Een Anthropic API-key begint met sk-ant-')),
     smtpHost: optional(z.string().trim().max(200).regex(/^[a-z0-9.-]+$/i, 'Vul alleen de servernaam in, bijv. smtp.example.com')),
     smtpPort: optional(z.string().trim().regex(/^\d{2,5}$/, 'Vul een poortnummer in, meestal 587 of 465')),
     smtpSecure: optional(z.enum(['true', 'false'])),
@@ -51,6 +53,7 @@ export type EffectiveSettings = {
 
 function hintFor(key: SettingKey, value: string) {
   if (key === 'mollieApiKey') return `${value.slice(0, 5)}…${value.slice(-4)}`;
+  if (key === 'anthropicApiKey') return `sk-ant-…${value.slice(-4)}`;
   return '••••••••';
 }
 
@@ -58,6 +61,7 @@ function hintFor(key: SettingKey, value: string) {
 export function overridesFromConfig(config: Config): Partial<Record<SettingKey, string>> {
   return {
     mollieApiKey: config.mollieApiKey,
+    anthropicApiKey: config.anthropicApiKey,
     smtpHost: config.smtp?.host,
     smtpPort: config.smtp ? String(config.smtp.port) : undefined,
     smtpSecure: config.smtp ? String(config.smtp.secure) : undefined,

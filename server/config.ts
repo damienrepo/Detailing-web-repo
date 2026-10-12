@@ -13,6 +13,7 @@ export type Config = {
   secretKey?: string;
   // Values below come from the environment and, when set, override what is entered in the admin.
   mollieApiKey?: string;
+  anthropicApiKey?: string;
   smtp?: { host: string; port: number; user?: string; pass?: string; secure: boolean };
   mailFrom?: string;
   notifyEmail?: string;
@@ -32,6 +33,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     uploadsDir: env.UPLOADS_DIR?.trim() || (databasePath === ':memory:' ? path.join(os.tmpdir(), 'detail2go-test-uploads') : path.join(path.dirname(databasePath), 'uploads')),
     secretKey: env.SECRET_KEY?.trim() || undefined,
     mollieApiKey: env.MOLLIE_API_KEY?.trim() || undefined,
+    anthropicApiKey: env.ANTHROPIC_API_KEY?.trim() || undefined,
     smtp: smtpHost
       ? {
           host: smtpHost,

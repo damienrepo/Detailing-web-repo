@@ -47,8 +47,11 @@ import {
 import { createPaymentResolver, MockProvider, verifyMollieKey, type PaymentProvider } from './payments';
 import { createCipher, loadEncryptionKey, type Cipher } from './security';
 import { overridesFromConfig, settingsInputSchema, SettingsStore } from './settings';
+import { claudeEngine, LANGS, TRANSLATE_LIMITS, Translator, type TranslateEngine } from './translate';
 
 export type AppDeps = {
+  /** Fixed translation engine (tests). Defaults to Claude with the API key from the admin settings. */
+  translateEngine?: TranslateEngine;
   config: Config;
   db: Db;
   /** A fixed provider (tests) or a function returning the current one. Defaults to the admin settings. */
@@ -116,6 +119,14 @@ export function createApp(deps: AppDeps) {
         : createPaymentResolver(() => settings.get('mollieApiKey'), config);
   const mailer = deps.mailer ?? createMailer(() => settings.effective());
   const notifyEmail = () => settings.effective().notifyEmail;
+  let engineFor: { key: string; engine: TranslateEngine } | undefined;
+  const translator = new Translator(db, () => {
+    if (deps.translateEngine) return deps.translateEngine;
+    const key = settings.get('anthropicApiKey');
+    if (!key) return undefined;
+    if (engineFor?.key !== key) engineFor = { key, engine: claudeEngine(key) };
+    return engineFor.engine;
+  });
 
   const app = express();
   app.set('trust proxy', 1);
@@ -199,8 +210,35 @@ export function createApp(deps: AppDeps) {
   });
 
   api.get('/config', (_req, res) => {
-    res.json({ payments: getPayments()?.mode ?? 'off' });
+    res.json({ payments: getPayments()?.mode ?? 'off', translate: translator.enabled });
   });
+
+  // --- Translation (public) ----------------------------------------------
+
+  const langParam = z.enum(LANGS);
+  const translateRequest = z.object({
+    lang: langParam,
+    texts: z
+      .array(z.string().min(1).max(TRANSLATE_LIMITS.maxTextLength))
+      .max(120)
+      .refine((t) => t.reduce((n, x) => n + x.length, 0) <= 12_000, 'Te veel tekst in één keer.'),
+  });
+
+  /** Everything translated so far; the browser caches it so pages switch language instantly. */
+  api.get('/translations/:lang', (req, res) => {
+    const lang = parse(langParam, req.params.lang);
+    res.set('Cache-Control', 'no-cache');
+    res.json(translator.dictionary(lang));
+  });
+
+  api.post(
+    '/translate',
+    rateLimit(120, 10 * 60_000),
+    asyncRoute(async (req, res) => {
+      const { lang, texts } = parse(translateRequest, req.body);
+      res.json({ translations: await translator.translate(lang, texts, req.ip ?? 'unknown') });
+    }),
+  );
 
   api.post(
     '/orders',
@@ -504,6 +542,7 @@ export function createApp(deps: AppDeps) {
     values: settings.view(),
     payments: getPayments()?.mode ?? 'off',
     webhooks: /^https:\/\/(?!localhost|127\.)/.test(config.appUrl),
+    translations: translator.count('en'),
   });
 
   admin.get('/settings', (_req, res) => {
@@ -531,6 +570,33 @@ export function createApp(deps: AppDeps) {
       res.json({ ok: true, mode: key.startsWith('live_') ? 'live' : 'test' });
     }),
   );
+
+  admin.post(
+    '/settings/test-translate',
+    rateLimit(10, 10 * 60_000),
+    asyncRoute(async (req, res) => {
+      const typed =
+        typeof req.body?.apiKey === 'string' && req.body.apiKey
+          ? parse(settingsInputSchema, { anthropicApiKey: req.body.apiKey }).anthropicApiKey
+          : undefined;
+      const key = typed || settings.get('anthropicApiKey');
+      if (!key) throw new HttpError(400, 'Vul eerst een Anthropic API-key in.');
+      const engine = deps.translateEngine ?? claudeEngine(key);
+      try {
+        const [sample] = await engine(['Vraag vrijblijvend een afspraak aan']);
+        res.json({ ok: true, sample });
+      } catch (err) {
+        console.error('[translate] test:', err instanceof Error ? err.message : err);
+        throw new HttpError(400, 'Vertalen is niet gelukt. Controleer de API-key en of er tegoed op je Anthropic-account staat.');
+      }
+    }),
+  );
+
+  admin.delete('/translations', (req, res) => {
+    const removed = translator.clear();
+    audit(req, 'translations_cleared', String(removed));
+    res.json(settingsView());
+  });
 
   admin.post(
     '/settings/test-mail',

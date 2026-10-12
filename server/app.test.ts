@@ -164,7 +164,7 @@ describe('checkout', () => {
       .post('/api/orders')
       .send({ items: [{ productId: 'interior-kit', quantity: 1 }], customer, acceptTerms: true });
     expect(res.status).toBe(503);
-    expect((await request(app).get('/api/config')).body).toEqual({ payments: 'off' });
+    expect((await request(app).get('/api/config')).body).toEqual({ payments: 'off', translate: false });
   });
 });
 
