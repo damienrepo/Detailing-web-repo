@@ -596,7 +596,7 @@ export const SERVICES: Service[] = [
     options: [
       {
         title: 'Kies je dekking',
-        intro: 'Het goud laat zien waar de folie komt. De prijs hangt af van de auto en de gekozen dekking; je krijgt altijd vooraf een offerte op maat.',
+        intro: 'Het turquoise deel laat zien waar de folie komt. De prijs hangt af van de auto en de gekozen dekking; je krijgt altijd vooraf een offerte op maat.',
         style: 'coverage',
         options: [
           {

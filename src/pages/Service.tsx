@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router';
 import { CATEGORIES, getService, serviceMetaDescription, servicePriceLabel, type Comparison, type OptionGroup, type Service } from '../../shared/services';
 import { PaintLayers, PAINT_LAYERS } from '../components/PaintLayers';
 import { CoatingLayers, COATING_COLORS } from '../components/CoatingLayers';
-import { PpfCar } from '../components/PpfCar';
 import { SITE } from '../../shared/site';
 import { Reveal } from '../components/Reveal';
 import { AskUs, ClosingCta, FaqList, SectionHeading } from '../components/Section';
@@ -325,9 +324,18 @@ function CoverageCards({ group }: { group: OptionGroup }) {
               {o.popular && (
                 <span className="eyebrow absolute right-4 top-4 z-10 bg-accent-fill px-2.5 py-1 text-ink">{o.label}</span>
               )}
-              <div className="flex justify-center bg-[radial-gradient(ellipse_at_50%_40%,#ffffff_0%,#f3f1ec_70%)] px-6 pb-4 pt-10">
-                {o.coverage && <PpfCar coverage={o.coverage} className="h-72 w-auto md:h-80" />}
-              </div>
+              {o.coverage && (
+                <div className="bg-white px-4 pb-2 pt-10">
+                  <img
+                    src={`${import.meta.env.BASE_URL}ppf/ppf-${o.coverage}.webp`}
+                    alt={`Porsche 911 met ${o.name.toLowerCase()} lakbeschermingsfolie, in turquoise aangegeven`}
+                    width={1021}
+                    height={531}
+                    loading="lazy"
+                    className="h-auto w-full"
+                  />
+                </div>
+              )}
               <div className="flex flex-1 flex-col border-t border-paper-3 p-6 md:p-8">
                 {!o.popular && o.label && <p className="eyebrow text-accent-strong">{o.label}</p>}
                 {o.popular && <p className="eyebrow text-accent-strong">Aanbevolen</p>}
@@ -349,8 +357,8 @@ function CoverageCards({ group }: { group: OptionGroup }) {
         ))}
       </div>
       <p className="mt-6 flex items-center gap-3 text-sm text-stone-dark">
-        <span aria-hidden className="inline-block h-4 w-8 border-2 border-accent-fill bg-[repeating-linear-gradient(45deg,rgba(232,185,49,0.35)_0_2px,rgba(232,185,49,0.12)_2px_5px)]" />
-        Goud = beschermd met lakbeschermingsfolie. Ramen worden niet beplakt.
+        <span aria-hidden className="inline-block h-4 w-8 bg-[#2a9a9e]" />
+        Turquoise = beschermd met lakbeschermingsfolie. Ramen worden niet beplakt.
       </p>
     </>
   );
