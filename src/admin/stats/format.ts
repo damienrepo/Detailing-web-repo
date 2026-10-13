@@ -5,6 +5,7 @@ import {
   DEVICE_LABELS,
   EVENT_INFO,
   LANGUAGE_NAMES,
+  RETURNING_LABELS,
   type Bucket,
   type Channel,
   type Device,
@@ -29,6 +30,15 @@ export function fmtDuration(ms: number) {
   const m = Math.floor(s / 60);
   if (m < 60) return `${m} m ${String(s % 60).padStart(2, '0')} s`;
   return `${Math.floor(m / 60)} u ${String(m % 60).padStart(2, '0')} m`;
+}
+
+/** "1e", "2e", "3e" … */
+export const ordinal = (n: number) => `${n}e`;
+
+/** "vandaag", "gisteren", "12 dagen geleden". */
+export function daysAgo(ts: number, now = Date.now()) {
+  const days = Math.floor((now - ts) / 86_400_000);
+  return days <= 0 ? 'vandaag' : days === 1 ? 'gisteren' : `${days} dagen geleden`;
 }
 
 export const fmtSeconds = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
@@ -80,7 +90,10 @@ export function languageName(code: string) {
 export function valueLabel(key: FilterKey, value: string, titles?: Map<string, string | null>) {
   switch (key) {
     case 'channel':
+    case 'firstChannel':
       return CHANNEL_LABELS[value as Channel] ?? value;
+    case 'returning':
+      return RETURNING_LABELS[value] ?? value;
     case 'device':
       return DEVICE_LABELS[value as Device] ?? value;
     case 'country':

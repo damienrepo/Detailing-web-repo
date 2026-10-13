@@ -199,6 +199,13 @@ const MIGRATIONS: string[] = [
   ALTER TABLE orders ADD COLUMN meta_attempts INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE orders ADD COLUMN meta_claimed_at INTEGER;
   ALTER TABLE orders ADD COLUMN meta_last_error TEXT;`,
+  // Statistics cookie: links visits of the same visitor across days (see server/analytics.ts).
+  `ALTER TABLE analytics_sessions ADD COLUMN vid TEXT;
+  ALTER TABLE analytics_sessions ADD COLUMN visit_no INTEGER;
+  ALTER TABLE analytics_sessions ADD COLUMN first_seen_at INTEGER;
+  ALTER TABLE analytics_sessions ADD COLUMN first_channel TEXT;
+  ALTER TABLE analytics_sessions ADD COLUMN first_referrer TEXT;
+  CREATE INDEX analytics_sessions_vid ON analytics_sessions(vid, started_at);`,
 ];
 
 export function openDb(file: string): Db {

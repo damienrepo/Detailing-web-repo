@@ -54,10 +54,10 @@ describe('collecting statistics', () => {
   it('groups pageviews into one visit and records time, scroll and actions', () => {
     const analytics = new Analytics(openDb(':memory:'));
     const t = Date.UTC(2026, 5, 1, 10);
-    expect(analytics.collect(pageview('aaaaaaaa1', '/', { ref: 'https://www.google.nl/search?q=detailing' }), ctx, t)).toBe(true);
-    expect(analytics.collect({ t: 'engage', id: 'aaaaaaaa1', d: 42_000, s: 80, title: 'Home | Detail2Go' }, ctx, t + 42_000)).toBe(true);
-    expect(analytics.collect(pageview('aaaaaaaa2', '/afspraak'), ctx, t + 45_000)).toBe(true);
-    expect(analytics.collect({ t: 'event', id: 'aaaaaaaa2', name: 'booking', label: 'polijsten' }, ctx, t + 90_000)).toBe(true);
+    expect(analytics.collect(pageview('aaaaaaaa1', '/', { ref: 'https://www.google.nl/search?q=detailing' }), ctx, t).recorded).toBe(true);
+    expect(analytics.collect({ t: 'engage', id: 'aaaaaaaa1', d: 42_000, s: 80, title: 'Home | Detail2Go' }, ctx, t + 42_000).recorded).toBe(true);
+    expect(analytics.collect(pageview('aaaaaaaa2', '/afspraak'), ctx, t + 45_000).recorded).toBe(true);
+    expect(analytics.collect({ t: 'event', id: 'aaaaaaaa2', name: 'booking', label: 'polijsten' }, ctx, t + 90_000).recorded).toBe(true);
 
     const data = analytics.load(t - 1000, t + 3_600_000);
     expect(data.sessions).toHaveLength(1);
@@ -88,13 +88,13 @@ describe('collecting statistics', () => {
   it('ignores bots, admin pages, invalid messages and duplicate payments', () => {
     const analytics = new Analytics(openDb(':memory:'));
     const t = Date.UTC(2026, 5, 1, 10);
-    expect(analytics.collect(pageview('cccccccc1', '/'), { ...ctx, userAgent: 'Googlebot/2.1' }, t)).toBe(false);
-    expect(analytics.collect(pageview('cccccccc2', '/admin/statistieken'), ctx, t)).toBe(false);
-    expect(analytics.collect({ t: 'pageview', id: 'x', path: '/' }, ctx, t)).toBe(false);
-    expect(analytics.collect({ t: 'engage', id: 'unknown00', d: 1000 }, ctx, t)).toBe(false);
+    expect(analytics.collect(pageview('cccccccc1', '/'), { ...ctx, userAgent: 'Googlebot/2.1' }, t).recorded).toBe(false);
+    expect(analytics.collect(pageview('cccccccc2', '/admin/statistieken'), ctx, t).recorded).toBe(false);
+    expect(analytics.collect({ t: 'pageview', id: 'x', path: '/' }, ctx, t).recorded).toBe(false);
+    expect(analytics.collect({ t: 'engage', id: 'unknown00', d: 1000 }, ctx, t).recorded).toBe(false);
     analytics.collect(pageview('cccccccc3', '/bestelling/secretid123'), ctx, t);
-    expect(analytics.collect({ t: 'event', id: 'cccccccc3', name: 'purchase', label: 'D2G-1', value: 4995 }, ctx, t)).toBe(true);
-    expect(analytics.collect({ t: 'event', id: 'cccccccc3', name: 'purchase', label: 'D2G-1', value: 4995 }, ctx, t + 5000)).toBe(false);
+    expect(analytics.collect({ t: 'event', id: 'cccccccc3', name: 'purchase', label: 'D2G-1', value: 4995 }, ctx, t).recorded).toBe(true);
+    expect(analytics.collect({ t: 'event', id: 'cccccccc3', name: 'purchase', label: 'D2G-1', value: 4995 }, ctx, t + 5000).recorded).toBe(false);
     const data = analytics.load(t - 1000, t + 60_000);
     expect(data.pageviews.map((p) => p.path)).toEqual(['/bestelling']);
     expect(buildReport(data, { from: t - 1000, to: t + 60_000, tz: 'UTC' }).totals.revenue).toBe(4995);
@@ -111,12 +111,77 @@ describe('collecting statistics', () => {
   });
 });
 
+describe('the statistics cookie', () => {
+  const t = Date.UTC(2026, 5, 1, 10);
+  const berlin = (id: string, path = '/') => pageview(id, path, { tz: 'Europe/Berlin' });
+
+  it('is set for Dutch visitors without asking, and elsewhere only with consent', () => {
+    const analytics = new Analytics(openDb(':memory:'));
+    expect(analytics.collect(pageview('ffffffff1', '/'), ctx, t).setVid).toMatch(/^[\w-]{16,40}$/);
+    expect(analytics.collect(berlin('ffffffff2'), { ...ctx, ip: '198.51.100.2' }, t).setVid).toBeUndefined();
+    expect(analytics.collect(berlin('ffffffff3'), { ...ctx, ip: '198.51.100.3', statsConsent: 'granted' }, t).setVid).toBeDefined();
+    expect(analytics.collect(pageview('ffffffff4', '/'), { ...ctx, ip: '198.51.100.4', statsConsent: 'denied' }, t).setVid).toBeUndefined();
+  });
+
+  it('recognises a returning visitor and remembers where they first came from', () => {
+    const db = openDb(':memory:');
+    const analytics = new Analytics(db);
+    const vid = analytics.collect(pageview('gggggggg1', '/', { ref: 'https://l.instagram.com/' }), ctx, t).setVid!;
+    // Two days later, from another network, typing the address: the cookie still recognises them.
+    const later = t + 2 * 86_400_000;
+    const again = analytics.collect(pageview('gggggggg2', '/afspraak'), { ...ctx, ip: '198.51.100.9', vid }, later);
+    expect(again.setVid).toBeUndefined();
+    analytics.collect({ t: 'event', id: 'gggggggg2', name: 'booking', label: 'polijsten' }, { ...ctx, vid }, later + 60_000);
+    const sessions = db.prepare('SELECT channel, vid, visit_no, first_channel, first_referrer FROM analytics_sessions ORDER BY id').all();
+    expect(sessions).toEqual([
+      { channel: 'social', vid, visit_no: 1, first_channel: 'social', first_referrer: 'l.instagram.com' },
+      { channel: 'direct', vid, visit_no: 2, first_channel: 'social', first_referrer: 'l.instagram.com' },
+    ]);
+    const report = buildReport(analytics.load(t - 1000, later + 3_600_000), { from: t - 1000, to: later + 3_600_000, tz: 'Europe/Amsterdam' });
+    expect(report.totals.visitors).toBe(1);
+    expect(report.loyalty).toMatchObject({ recognized: 2, returningSessions: 1, customers: 1, convertedLater: 1, avgVisitsToConvert: 2 });
+    expect(report.loyalty.attribution).toEqual(expect.arrayContaining([{ key: 'social', first: 1, last: 0 }, { key: 'direct', first: 0, last: 1 }]));
+    const detail = sessionDetail(analytics.loadSession(2), 2)!;
+    expect(detail).toMatchObject({ visitNo: 2, firstChannel: 'social' });
+    expect(detail.history.map((h) => h.id)).toEqual([1]);
+  });
+
+  it('keeps one visit together when the cookie does not come back', () => {
+    const db = openDb(':memory:');
+    const analytics = new Analytics(db);
+    const first = analytics.collect(pageview('hhhhhhhh1', '/'), ctx, t).setVid;
+    const second = analytics.collect(pageview('hhhhhhhh2', '/shop'), ctx, t + 10_000).setVid;
+    expect(second).toBe(first);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM analytics_sessions').get()).toEqual({ n: 1 });
+  });
+
+  it('links the running visit when a visitor accepts, and forgets them when they object', () => {
+    const db = openDb(':memory:');
+    const analytics = new Analytics(db);
+    const visitor = { ...ctx, ip: '198.51.100.20' };
+    analytics.collect(berlin('iiiiiiii1'), visitor, t);
+    expect(db.prepare('SELECT vid FROM analytics_sessions').get()).toEqual({ vid: null });
+    const accepted = analytics.collect({ t: 'consent', id: 'iiiiiiii1' }, { ...visitor, statsConsent: 'granted' }, t + 5000);
+    expect(accepted.setVid).toBeDefined();
+    expect(db.prepare('SELECT vid, visit_no FROM analytics_sessions').get()).toEqual({ vid: accepted.setVid, visit_no: 1 });
+
+    const objected = analytics.collect({ t: 'optout' }, { ...visitor, vid: accepted.setVid, statsConsent: 'denied' }, t + 9000);
+    expect(objected.clearVid).toBe(true);
+    expect(db.prepare('SELECT vid, visit_no, first_channel FROM analytics_sessions').get()).toEqual({ vid: null, visit_no: null, first_channel: null });
+    // A cookie that is still around after refusing is dropped on the next page.
+    const after = analytics.collect(pageview('iiiiiiii2', '/'), { ...visitor, vid: accepted.setVid, statsConsent: 'denied' }, t + 20_000);
+    expect(after).toMatchObject({ recorded: true, clearVid: true });
+    expect(after.setVid).toBeUndefined();
+  });
+});
+
 describe('statistics endpoints', () => {
   it('collects from visitors but not from signed-in admins or other sites', async () => {
     const ctx2 = setup();
     const send = (body: object, headers: Record<string, string> = {}) =>
       request(ctx2.app).post('/api/collect').set('Content-Type', 'text/plain').set('User-Agent', CHROME).set('Host', 'shop.test').set(headers).send(JSON.stringify(body));
-    await send(pageview('eeeeeeee1', '/')).expect(204);
+    const first = await send(pageview('eeeeeeee1', '/')).expect(204);
+    expect(first.headers['set-cookie']?.[0]).toMatch(/^d2g_vid=[\w-]+; Max-Age=34128000; Path=\/; Expires=.*; HttpOnly; SameSite=Lax$/);
     await send(pageview('eeeeeeee2', '/'), { Origin: 'https://evil.example', 'User-Agent': IPHONE }).expect(204);
     const count = () => (ctx2.db.prepare('SELECT COUNT(*) AS n FROM analytics_pageviews').get() as { n: number }).n;
     expect(count()).toBe(1);

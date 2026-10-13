@@ -64,6 +64,9 @@ export function demoAnalytics(now = Date.now(), days = 400): RawData {
   const events: EventRow[] = [];
   let pvId = 0;
   let evId = 0;
+  // Visitors with the statistics cookie, seen in the last 45 days; some of them come back.
+  type Known = { vid: string; first: number; channel: Channel; referrer: string | null; visits: number; last: number };
+  let recent: Known[] = [];
   const startDay = new Date(now);
   startDay.setHours(0, 0, 0, 0);
   startDay.setDate(startDay.getDate() - days + 1);
@@ -78,12 +81,16 @@ export function demoAnalytics(now = Date.now(), days = 400): RawData {
     const week = [0.95, 0.9, 0.95, 1.0, 1.1, 1.3, 0.85][weekday];
     const count = Math.round(42 * trend * season * week * (0.8 + rnd() * 0.4));
     const visitorsToday: string[] = [];
+    recent = recent.filter((k) => day.getTime() - k.last < 45 * 86_400_000);
 
     for (let i = 0; i < count; i++) {
       const hour = weighted(rnd, Array.from({ length: 24 }, (_, h): [number, number] => [h, h < 7 ? 0.2 : h < 9 ? 1.5 : h < 12 ? 3 : h < 14 ? 4 : h < 17 ? 3 : h < 19 ? 3.5 : h < 22 ? 4.5 : 1.5]));
       const start = day.getTime() + hour * 3_600_000 + Math.floor(rnd() * 3_600_000);
       if (start > now) continue;
-      const channel = weighted<Channel>(rnd, [['search', 42], ['direct', 24], ['social', 15], ['referral', 5], ['paid', d > days - 60 ? 12 : 3], ['ai', 2 + (4 * d) / days], ['email', 2]]);
+      const recognized = rnd() < 0.72;
+      const back = recognized && recent.length && rnd() < 0.3 ? recent[Math.floor(rnd() * recent.length)] : undefined;
+      const returning = back && back.last < start ? back : undefined;
+      const channel = returning ? weighted<Channel>(rnd, [['direct', 45], ['search', 25], ['social', 15], ['email', 8], ['paid', 7]]) : weighted<Channel>(rnd, [['search', 42], ['direct', 24], ['social', 15], ['referral', 5], ['paid', d > days - 60 ? 12 : 3], ['ai', 2 + (4 * d) / days], ['email', 2]]);
       const referrer =
         channel === 'search' ? weighted(rnd, [['google.nl', 8], ['google.com', 2], ['bing.com', 1], ['duckduckgo.com', 0.5], ['ecosia.org', 0.5]])
         : channel === 'social' ? weighted(rnd, [['instagram.com', 6], ['facebook.com', 3], ['tiktok.com', 2], ['youtube.com', 0.5]])
@@ -102,7 +109,8 @@ export function demoAnalytics(now = Date.now(), days = 400): RawData {
       visitorsToday.push(visitor);
 
       const entry =
-        channel === 'social' ? weighted(rnd, [['/', 3], [pick(servicePages), 3], ['/shop', 1], [pick(productPages), 1]])
+        returning ? weighted(rnd, [['/afspraak', 3], [pick(servicePages), 3], ['/', 3], ['/shop', 1]])
+        : channel === 'social' ? weighted(rnd, [['/', 3], [pick(servicePages), 3], ['/shop', 1], [pick(productPages), 1]])
         : channel === 'paid' ? weighted(rnd, [['/diensten/polijsten', 2], ['/diensten/coatings', 2], ['/afspraak', 1]])
         : channel === 'email' ? weighted(rnd, [['/shop', 2], ['/blog/coating-of-wax', 2]])
         : channel === 'ai' ? weighted(rnd, [[pick(servicePages), 3], ['/', 1]])
@@ -123,8 +131,17 @@ export function demoAnalytics(now = Date.now(), days = 400): RawData {
         os,
         country,
         language: country === 'DE' ? 'de' : country === 'XX' ? 'en' : rnd() < 0.03 ? 'en' : 'nl',
+        vid: recognized ? (returning?.vid ?? `c${id}`) : null,
+        visit_no: recognized ? (returning ? returning.visits + 1 : 1) : null,
+        first_seen_at: recognized ? (returning?.first ?? start) : null,
+        first_channel: recognized ? (returning?.channel ?? channel) : null,
+        first_referrer: recognized ? (returning ? returning.referrer : referrer) : null,
       };
       sessions.push(session);
+      if (returning) {
+        returning.visits++;
+        returning.last = start;
+      } else if (recognized) recent.push({ vid: `c${id}`, first: start, channel, referrer, visits: 1, last: start });
 
       let t = start;
       let path: string | null = entry;
@@ -152,7 +169,7 @@ export function demoAnalytics(now = Date.now(), days = 400): RawData {
             cart = true;
           }
         }
-        if (path === '/afspraak' && rnd() < 0.24) ev('booking', pick(services).id);
+        if (path === '/afspraak' && rnd() < (returning ? 0.42 : 0.24)) ev('booking', pick(services).id);
         if (path === '/contact' && rnd() < 0.18) ev(weighted<EventName>(rnd, [['call', 3], ['whatsapp', 2], ['email', 1]]), weighted(rnd, [['053 123 45 67', 1]]));
         if (device === 'mobile' && rnd() < 0.025) ev('call', '053 123 45 67');
         if (rnd() < 0.015) ev('outbound', weighted(rnd, [['instagram.com', 3], ['google.com', 2]]));

@@ -2,7 +2,7 @@ import express, { type NextFunction, type Request, type RequestHandler, type Res
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
-import { buildReport, FILTER_KEYS, listSessions, sessionDetail, type Filters } from '../shared/analytics';
+import { buildReport, FILTER_KEYS, listSessions, sessionDetail, VISITOR_COOKIE_DAYS, type Filters } from '../shared/analytics';
 import { listedProducts, PRODUCTS, type Product } from '../shared/catalog';
 import { ABOUT, SHOP, BUILTIN_IMAGES, defaultContent, HOME, serviceEdit, shippingEdit, siteEdit, type ServiceEdit, type ShippingContent } from '../shared/content';
 import { aboutSchema, emailSchema, shopSchema, homeSchema, postSchema, productSchema, serviceSchema, shippingSchema, siteSchema, teamMemberSchema } from '../shared/schemas';
@@ -11,7 +11,7 @@ import { assertShippingAvailable, priceCart, PricingError } from '../shared/pric
 import { getService, listedServices, SERVICES } from '../shared/services';
 import { SITE } from '../shared/site';
 import { bookingSchema, bookingStatusSchema, checkoutSchema, fieldErrors, shipSchema } from '../shared/validation';
-import { Analytics } from './analytics';
+import { Analytics, STATS_CONSENT_COOKIE, VISITOR_COOKIE } from './analytics';
 import { Auth, createAuthRouter, sameOriginOnly } from './auth';
 import { createPost, deletePost, getPost, listAllPosts, listPublishedPosts, getPublishedPost, slugTaken, updatePost } from './blog';
 import type { Config } from './config';
@@ -48,7 +48,7 @@ import { createPaymentResolver, MockProvider, verifyMollieKey, type PaymentProvi
 import { createCipher, loadEncryptionKey, type Cipher } from './security';
 import { overridesFromConfig, settingsInputSchema, SettingsStore } from './settings';
 import { claudeEngine, LANGS, TRANSLATE_LIMITS, Translator, type TranslateEngine } from './translate';
-import { sendMetaPurchase, trackingFromRequest } from './meta';
+import { readCookies, sendMetaPurchase, trackingFromRequest } from './meta';
 
 export type AppDeps = {
   /** Fetch used for Meta's Conversions API (tests). */
@@ -113,6 +113,7 @@ export function createApp(deps: AppDeps) {
   const content = deps.content ?? new ContentStore(db);
   const media = new MediaStore(db, config.uploadsDir);
   const analytics = new Analytics(db);
+  const secureCookies = config.production && config.appUrl.startsWith('https://');
   const fixedPayments = deps.payments;
   const getPayments =
     typeof fixedPayments === 'function'
@@ -394,13 +395,30 @@ export function createApp(deps: AppDeps) {
     } catch {
       sameSite = false;
     }
-    // Our own visits while signed in to the admin would only skew the numbers.
-    if (sameSite && !signedIn(req)) {
+    let body: { t?: unknown } | undefined;
+    try {
+      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    } catch {
+      body = undefined;
+    }
+    // Our own visits while signed in to the admin would only skew the numbers; an objection always counts.
+    if (sameSite && body && (body.t === 'optout' || !signedIn(req))) {
       try {
-        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-        analytics.collect(body, { ip: req.ip ?? '', userAgent: req.get('user-agent') ?? '', host: req.get('host') ?? '' });
+        const cookies = readCookies(req.get('cookie'));
+        const consent = cookies[STATS_CONSENT_COOKIE];
+        const result = analytics.collect(body, {
+          ip: req.ip ?? '',
+          userAgent: req.get('user-agent') ?? '',
+          host: req.get('host') ?? '',
+          vid: cookies[VISITOR_COOKIE] ?? null,
+          statsConsent: consent === 'granted' || consent === 'denied' ? consent : null,
+        });
+        // Set by the server (not by script), so browsers that cap script-set cookies keep it for its full lifetime.
+        const options = { httpOnly: true, sameSite: 'lax' as const, secure: secureCookies, path: '/' };
+        if (result.setVid) res.cookie(VISITOR_COOKIE, result.setVid, { ...options, maxAge: VISITOR_COOKIE_DAYS * 86_400_000 });
+        else if (result.clearVid) res.clearCookie(VISITOR_COOKIE, options);
       } catch (err) {
-        if (!(err instanceof SyntaxError)) console.error('[analytics]', err);
+        console.error('[analytics]', err);
       }
     }
     res.status(204).end();

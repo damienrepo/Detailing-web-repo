@@ -1,8 +1,10 @@
-// Cookieless website statistics: pageviews, active time and scroll depth per page, and a few actions
-// (calls, bookings, orders). Nothing is stored in the browser; the server explains how visits are counted.
+// Website statistics: pageviews, active time and scroll depth per page, and a few actions (calls, bookings,
+// orders). Every visit is counted without cookies; when allowed, the server also sets a statistics cookie to
+// recognise returning visitors (see server/analytics.ts and the cookie banner).
 import { useEffect } from 'react';
 import { useLocation } from 'react-router';
 import { normalizePath, type Device, type EventName } from '../../shared/analytics';
+import { onStatsConsentChange } from './consent';
 import { DEMO } from './demo';
 
 type Page = {
@@ -29,8 +31,13 @@ function randomId() {
   return Array.from(bytes, (b) => (b % 36).toString(36)).join('');
 }
 
-function send(body: object) {
+function send(body: object, needsResponse = false) {
   const data = JSON.stringify(body);
+  // Messages that may set or clear the statistics cookie go as a normal request, whose cookies are always stored.
+  if (needsResponse) {
+    fetch('/api/collect', { method: 'POST', body: data, keepalive: true, credentials: 'same-origin', headers: { 'Content-Type': 'text/plain' } }).catch(() => {});
+    return;
+  }
   try {
     // A beacon survives the page being closed or navigating away to the payment page.
     if (navigator.sendBeacon?.('/api/collect', new Blob([data], { type: 'text/plain' }))) return;
@@ -107,7 +114,7 @@ function start(pathname: string) {
     message.paid = ['gclid', 'gbraid', 'wbraid', 'msclkid'].some((k) => params.has(k));
     measureLoad(p);
   }
-  send(message);
+  send(message, true);
   // The page sets its title after rendering, sometimes only once its data has loaded.
   const capture = () => {
     if (page !== p) return;
@@ -180,6 +187,11 @@ function listen() {
     },
     true,
   );
+  // Accepting links the visit that is already running; objecting removes the statistics cookie straight away.
+  onStatsConsentChange((consent) => {
+    if (consent === 'granted' && page) send({ t: 'consent', id: page.id }, true);
+    else if (consent === 'denied') send({ t: 'optout' }, true);
+  });
   window.addEventListener('error', (e) => reportError(e.message));
   window.addEventListener('unhandledrejection', (e) => reportError(e.reason instanceof Error ? e.reason.message : String(e.reason ?? '')));
 }

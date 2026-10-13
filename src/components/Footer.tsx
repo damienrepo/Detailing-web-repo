@@ -1,11 +1,10 @@
 import { Instagram, MessageCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { listedServices } from '../../shared/services';
 import { SHOP } from '../../shared/content';
 import { SITE } from '../../shared/site';
 import { openConsentSettings } from '../lib/consent';
-import { getSiteConfig } from '../lib/siteConfig';
+import { DEMO } from '../lib/demo';
 import { Logo } from './Logo';
 
 /** Hidden while the webshop is switched off. */
@@ -139,13 +138,9 @@ export function Footer() {
   );
 }
 
-/** Reopens the cookie banner; only there when the site uses marketing cookies at all. */
+/** Reopens the cookie settings; always there, because visitors can switch off the statistics cookie. */
 function CookieSettingsLink() {
-  const [hasPixel, setHasPixel] = useState(false);
-  useEffect(() => {
-    getSiteConfig().then((c) => setHasPixel(Boolean(c.metaPixelId)));
-  }, []);
-  if (!hasPixel) return null;
+  if (DEMO) return null;
   return (
     <button type="button" onClick={openConsentSettings} className="hover:text-paper">
       Cookie-instellingen

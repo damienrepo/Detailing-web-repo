@@ -38,6 +38,7 @@ import {
   type FilterKey,
   type Filters,
   type Insight,
+  type Loyalty,
   type Metrics,
   type PageDetail,
   type PageRow,
@@ -54,6 +55,7 @@ import { BarList, Delta, FunnelChart, Heatmap, Tabs, TrendChart, TrendLegend, ty
 import {
   bucketLabel,
   countryName,
+  daysAgo,
   eventDetail,
   eventLabel,
   fmtDateTime,
@@ -64,6 +66,7 @@ import {
   fmtSeconds,
   fmtTime,
   languageName,
+  ordinal,
   pageName,
   valueLabel,
 } from '../stats/format';
@@ -162,7 +165,7 @@ const TILES: { id: SeriesMetric; label: string; hint: string; value: (m: Metrics
   {
     id: 'visitors',
     label: 'Bezoekers',
-    hint: 'Unieke bezoekers, per dag geteld. Omdat we geen cookies gebruiken telt iemand die op twee dagen komt twee keer.',
+    hint: 'Unieke bezoekers. Met de statistiekcookie herkennen we iemand ook op een andere dag; zonder telt iemand die op twee dagen komt twee keer.',
     value: (m) => m.visitors,
     format: fmtNumber,
   },
@@ -383,6 +386,8 @@ export function StatisticsPage() {
           <SourcesCard report={data} onFilter={setFilter} />
           <ActionsCard report={data} onFilter={setFilter} />
         </div>
+
+        <LoyaltyCard loyalty={data.loyalty} sessions={data.totals.sessions} onFilter={setFilter} />
 
         <div className="grid gap-6 xl:grid-cols-2">
           <FunnelsCard report={data} />
@@ -950,6 +955,157 @@ function FunnelsCard({ report }: { report: Report }) {
   );
 }
 
+// --- Returning visitors -------------------------------------------------------------------------
+
+function Bands({ rows }: { rows: { label: string; count: number }[] }) {
+  const total = rows.reduce((n, r) => n + r.count, 0);
+  if (!total) return <p className="mt-3 text-sm text-stone-dark">Nog geen klanten in deze periode.</p>;
+  return (
+    <ul className="mt-3 space-y-2.5">
+      {rows.map((r) => (
+        <li key={r.label}>
+          <div className="flex justify-between gap-3 text-sm">
+            <span>{r.label}</span>
+            <span className="tabular text-stone-dark">
+              <strong className="font-semibold text-ink">{fmtNumber(r.count)}</strong> · {fmtPercent(r.count / total)}
+            </span>
+          </div>
+          <div className="mt-1 h-2 bg-paper-2">
+            <div className="h-full rounded-r-[4px] bg-accent-fill" style={{ width: `${(r.count / total) * 100}%` }} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function LoyaltyCard({ loyalty, sessions, onFilter }: { loyalty: Loyalty; sessions: number; onFilter: (key: FilterKey, value: string) => void }) {
+  if (!loyalty.recognized)
+    return (
+      <Card title="Nieuwe en terugkerende bezoekers" description="Nog geen herkende bezoekers in deze periode.">
+        <p className="max-w-2xl text-sm leading-relaxed text-stone-dark">
+          Bezoekers met de statistiekcookie herkennen we ook bij een volgend bezoek. Zodra die er zijn, zie je hier hoeveel mensen terugkomen, na hoeveel
+          bezoeken ze boeken of bestellen, en via welk kanaal klanten je de eerste keer vonden.
+        </p>
+      </Card>
+    );
+  const figures = [
+    { label: 'Komt terug', value: fmtPercent(loyalty.returningRate), sub: `${fmtNumber(loyalty.returningSessions)} van ${fmtNumber(loyalty.recognized)} herkende bezoeken` },
+    { label: 'Conversie nieuw → terugkerend', value: `${fmtPercent(loyalty.conversionNew, 1)} → ${fmtPercent(loyalty.conversionReturning, 1)}`, sub: 'Afspraak of bestelling per bezoek' },
+    {
+      label: 'Klant bij bezoek',
+      value: loyalty.avgVisitsToConvert === null ? '—' : loyalty.avgVisitsToConvert.toFixed(1).replace('.', ','),
+      sub: loyalty.customers ? `Gemiddeld, over ${fmtNumber(loyalty.customers)} klanten` : 'Nog geen klanten',
+    },
+    {
+      label: 'Dagen tot klant',
+      value: loyalty.avgDaysToConvert === null ? '—' : loyalty.avgDaysToConvert.toFixed(1).replace('.', ','),
+      sub: 'Gemiddeld, vanaf het eerste bezoek',
+    },
+  ];
+  const kinds: (DimRow & { label: string })[] = [
+    { key: 'new', label: 'Nieuw', sessions: loyalty.newSessions, conversions: Math.round(loyalty.conversionNew * loyalty.newSessions), visitors: 0, bounceRate: 0, avgDuration: 0 },
+    { key: 'returning', label: 'Terugkerend', sessions: loyalty.returningSessions, conversions: Math.round(loyalty.conversionReturning * loyalty.returningSessions), visitors: 0, bounceRate: 0, avgDuration: 0 },
+    { key: 'unknown', label: 'Niet herkend', sessions: Math.max(0, sessions - loyalty.recognized), conversions: 0, visitors: 0, bounceRate: 0, avgDuration: 0 },
+  ];
+  const maxCredit = Math.max(1, ...loyalty.attribution.map((a) => Math.max(a.first, a.last)));
+  return (
+    <Card
+      title="Nieuwe en terugkerende bezoekers"
+      description={`Gebaseerd op ${fmtPercent(loyalty.coverage)} van de bezoeken: bezoekers die we met de statistiekcookie herkennen.`}
+    >
+      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {figures.map((f) => (
+          <div key={f.label} className="bg-paper/70 p-3">
+            <dt className="text-xs text-stone-dark">{f.label}</dt>
+            <dd className="mt-1 text-2xl font-semibold">{f.value}</dd>
+            <dd className="mt-0.5 text-xs text-stone-dark">{f.sub}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="mt-6 grid gap-8 lg:grid-cols-3">
+        <div>
+          <h3 className="text-sm font-semibold">Nieuw of terugkerend</h3>
+          <div className="mt-3">
+            <BarList
+              rows={kinds}
+              value={(r) => r.sessions}
+              header="Bezoeker"
+              label={(r) => r.label}
+              columns={[
+                { header: 'Bezoeken', render: (r) => fmtNumber(r.sessions) },
+                { header: 'Conversie', render: (r) => (r.key === 'unknown' ? '—' : fmtPercent(r.sessions ? r.conversions / r.sessions : 0, 1)) },
+              ]}
+              onSelect={(r) => onFilter('returning', r.key)}
+            />
+          </div>
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold">Bij welk bezoek klanten boeken of bestellen</h3>
+          <Bands rows={loyalty.visitsToConvert} />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold">Tijd tussen eerste bezoek en boeking</h3>
+          <Bands rows={loyalty.daysToConvert} />
+        </div>
+      </div>
+      <div className="mt-8">
+        <h3 className="text-sm font-semibold">Wat klanten de eerste keer binnenbracht</h3>
+        <p className="mt-0.5 max-w-3xl text-sm text-stone-dark">
+          Veel mensen ontdekken je via Instagram of Google en boeken later, vaak door je adres in te typen. Hier krijgt het kanaal van het eerste bezoek de eer,
+          naast het kanaal van het bezoek waarin geboekt werd. Klik op een kanaal om die klanten te bekijken.
+        </p>
+        {loyalty.attribution.length ? (
+          <table className="mt-4 w-full text-sm">
+            <thead className="text-left text-xs text-stone-dark">
+              <tr className="border-b border-paper-3">
+                <th className="py-2 font-medium">Kanaal</th>
+                <th className="w-2/5 py-2 font-medium">
+                  <span className="mr-4 inline-flex items-center gap-1.5">
+                    <span aria-hidden className="h-2 w-3 bg-accent-fill" />
+                    Eerste bezoek
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden className="h-2 w-3 bg-stone" />
+                    Bezoek met boeking
+                  </span>
+                </th>
+                <th className="py-2 text-right font-medium">Eerste</th>
+                <th className="py-2 text-right font-medium">Bij boeking</th>
+                <th className="hidden py-2 text-right font-medium sm:table-cell">Verschil</th>
+              </tr>
+            </thead>
+            <tbody className="tabular">
+              {loyalty.attribution.map((a) => (
+                <tr key={a.key} className="cursor-pointer border-b border-paper-2 hover:bg-paper/60" onClick={() => onFilter('firstChannel', a.key)}>
+                  <td className="py-2 pr-3">
+                    <button type="button" className="text-left hover:underline" onClick={() => onFilter('firstChannel', a.key)}>
+                      {CHANNEL_LABELS[a.key] ?? a.key}
+                    </button>
+                  </td>
+                  <td className="py-2 pr-3">
+                    <div className="space-y-[2px]">
+                      <div className="h-2 rounded-r-[3px] bg-accent-fill" style={{ width: `${(a.first / maxCredit) * 100}%` }} />
+                      <div className="h-2 rounded-r-[3px] bg-stone" style={{ width: `${(a.last / maxCredit) * 100}%` }} />
+                    </div>
+                  </td>
+                  <td className="py-2 text-right font-semibold">{fmtNumber(a.first)}</td>
+                  <td className="py-2 text-right">{fmtNumber(a.last)}</td>
+                  <td className={`hidden py-2 text-right sm:table-cell ${a.first > a.last ? 'text-[#24533d]' : a.first < a.last ? 'text-stone-dark' : 'text-stone'}`}>
+                    {a.first === a.last ? '±0' : `${a.first > a.last ? '+' : '−'}${Math.abs(a.first - a.last)}`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="mt-3 text-sm text-stone-dark">Nog geen klanten met de statistiekcookie in deze periode.</p>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 // --- Problems ------------------------------------------------------------------------------------
 
 function ProblemsCard({ report, onFilter }: { report: Report; onFilter: (key: FilterKey, value: string) => void }) {
@@ -1091,6 +1247,11 @@ function SessionsCard({ query, titles }: { query: string; titles: Map<string, st
                   {s.paths.length > shown.length && <span className="text-xs text-stone-dark">+{s.paths.length - shown.length}</span>}
                 </span>
                 <span className="flex items-center gap-2 md:justify-end">
+                  {s.visitNo !== null && s.visitNo > 1 && (
+                    <span className="whitespace-nowrap bg-paper-2 px-1.5 py-0.5 text-xs" title="Herkend aan de statistiekcookie">
+                      {ordinal(s.visitNo)} bezoek
+                    </span>
+                  )}
                   {s.goals.map((g) => {
                     const GoalIcon = EVENT_ICONS[g];
                     return (
@@ -1134,9 +1295,12 @@ function MeasuringCard({ onCleared }: { onCleared: () => void }) {
     <Card title="Zo meten we">
       <div className="grid gap-6 text-sm leading-relaxed text-stone-dark md:grid-cols-2">
         <ul className="space-y-2">
-          <li>Zonder cookies en zonder iets op het apparaat van de bezoeker op te slaan, dus er is geen cookiebanner nodig.</li>
-          <li>IP-adressen worden niet bewaard. Een bezoeker wordt één dag herkend met een anonieme code die elke nacht wordt vervangen.</li>
-          <li>Daardoor telt iemand die op twee verschillende dagen komt als twee bezoekers.</li>
+          <li>Elk bezoek wordt geteld, ook zonder cookies: dan herkennen we een bezoeker één dag aan een anonieme code die elke nacht wordt vervangen.</li>
+          <li>
+            Met de statistiekcookie herkennen we iemand ook op een andere dag. Bezoekers uit Nederland krijgen die standaard (dat mag zonder toestemming,
+            omdat de gegevens alleen bij ons blijven); anderen alleen als ze cookies accepteren. Iedereen kan hem uitzetten via Cookie-instellingen.
+          </li>
+          <li>IP-adressen worden niet bewaard en niets wordt gedeeld, ook niet met Meta.</li>
         </ul>
         <ul className="space-y-2">
           <li>Je eigen bezoeken tellen niet mee zolang je in het beheer bent ingelogd.</li>
@@ -1193,6 +1357,14 @@ export function SessionPage() {
     { label: 'Duur', value: fmtDuration(detail.duration) },
     { label: 'Pagina’s', value: fmtNumber(detail.pageviews) },
   ];
+  if (detail.visitNo !== null)
+    facts.push({
+      label: 'Bezoeker',
+      value:
+        detail.visitNo > 1 && detail.firstSeenAt !== null
+          ? `${ordinal(detail.visitNo)} bezoek · eerste keer ${daysAgo(detail.firstSeenAt, detail.startedAt).replace('vandaag', 'dezelfde dag')} via ${CHANNEL_LABELS[detail.firstChannel ?? detail.channel]}${detail.firstReferrer ? ` (${detail.firstReferrer})` : ''}`
+          : 'Eerste bezoek',
+    });
 
   return (
     <>
@@ -1261,6 +1433,34 @@ export function SessionPage() {
           </li>
         </ol>
       </section>
+
+      {detail.history.length > 0 && (
+        <section className="mt-8 border border-paper-3 bg-white p-4 md:p-6">
+          <h2 className="font-semibold">Andere bezoeken van deze bezoeker</h2>
+          <p className="mt-0.5 text-sm text-stone-dark">Herkend aan de statistiekcookie. Nieuwste eerst.</p>
+          <ul className="-mx-4 mt-3 divide-y divide-paper-2 md:-mx-6">
+            {detail.history.map((h) => (
+              <li key={h.id}>
+                <Link to={`/admin/statistieken/bezoek/${h.id}`} state={state} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm hover:bg-paper/60 md:px-6">
+                  <span className="tabular w-36 text-stone-dark">{fmtDateTime(h.startedAt)}</span>
+                  <span className="w-24">{h.visitNo !== null ? `${ordinal(h.visitNo)} bezoek` : ''}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    <SourceText s={h} />
+                  </span>
+                  <span className="text-stone-dark">
+                    {fmtNumber(h.pageviews)} {h.pageviews === 1 ? 'pagina' : 'pagina’s'} · {fmtDuration(h.duration)}
+                  </span>
+                  {h.goals.map((g) => (
+                    <span key={g} className="bg-[#e6f0ea] px-1.5 py-0.5 text-xs font-medium text-[#24533d]">
+                      {g === 'booking' ? 'Afspraak' : 'Besteld'}
+                    </span>
+                  ))}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }

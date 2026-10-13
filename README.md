@@ -66,12 +66,23 @@ the defaults in `shared/`.
 
 ### Statistics
 
-The site measures its own visitors without cookies, so no cookie banner is needed
-(`src/lib/analytics.ts` sends, `server/analytics.ts` stores, `shared/analytics.ts`
-builds the report). IP addresses are never stored: a visitor is recognised for one
-day by a hash with a salt that is replaced every night. Your own visits don't count
-while you're signed in to the admin; test in a private window. Data older than 25
-months is deleted automatically, and *Alle statistieken wissen* clears it after testing.
+The site measures its own visitors (`src/lib/analytics.ts` sends, `server/analytics.ts`
+stores, `shared/analytics.ts` builds the report). Every visit is counted without
+cookies: a visitor is recognised for one day by a hash with a salt that is replaced
+every night, and IP addresses are never stored.
+
+On top of that, a first-party HttpOnly cookie (`d2g_vid`, 13 months) recognises
+returning visitors, so the dashboard can show who comes back, after how many visits
+people book, and which channel first brought a customer in. Dutch visitors get it
+without being asked (analytics cookies with little privacy impact are exempt under
+Dutch law; the data stays on our server and is never shared); visitors from other
+countries only after accepting cookies. Anyone can switch it off under
+*Cookie-instellingen*, which also unlinks their earlier visits. The choices live in
+`src/lib/consent.ts` (`d2g_stats` for statistics, `d2g_consent` for Meta).
+
+Your own visits don't count while you're signed in to the admin; test in a private
+window. Data older than 25 months is deleted automatically, and *Alle statistieken
+wissen* clears it after testing.
 
 ### Locked out?
 

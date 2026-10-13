@@ -50,7 +50,7 @@ export const CHANNEL_HINTS: Record<Channel, string> = {
 };
 
 /** Filters narrow every number on the dashboard to the visits that match all of them. */
-export const FILTER_KEYS = ['channel', 'referrer', 'campaign', 'device', 'browser', 'os', 'country', 'language', 'page', 'entry', 'exit', 'event'] as const;
+export const FILTER_KEYS = ['channel', 'referrer', 'campaign', 'device', 'browser', 'os', 'country', 'language', 'page', 'entry', 'exit', 'event', 'returning', 'firstChannel'] as const;
 export type FilterKey = (typeof FILTER_KEYS)[number];
 export type Filters = Partial<Record<FilterKey, string>>;
 
@@ -67,7 +67,12 @@ export const FILTER_LABELS: Record<FilterKey, string> = {
   entry: 'Binnengekomen op',
   exit: 'Vertrokken vanaf',
   event: 'Actie',
+  returning: 'Bezoeker',
+  firstChannel: 'Eerste bezoek via',
 };
+
+/** Values of the "returning" filter. Only visitors with the statistics cookie can be recognised. */
+export const RETURNING_LABELS: Record<string, string> = { new: 'Nieuw', returning: 'Terugkerend', unknown: 'Niet herkend' };
 
 /** A visit ends after 30 minutes without activity. */
 export const SESSION_GAP_MS = 30 * 60_000;
@@ -77,6 +82,18 @@ export const MAX_PAGE_MS = 30 * 60_000;
 export const ENGAGED_MS = 10_000;
 /** Raw statistics are deleted after this many days (about 25 months). */
 export const RETENTION_DAYS = 760;
+/** Lifetime of the statistics cookie (13 months); it is not extended on later visits. */
+export const VISITOR_COOKIE_DAYS = 395;
+
+/**
+ * Dutch law (Telecommunicatiewet 11.7a lid 3b) allows first-party analytics cookies with little privacy impact
+ * without consent, as long as visitors are told about them and can object. Elsewhere in the EU we ask first.
+ */
+export function statisticsCookieAllowed(consent: 'granted' | 'denied' | undefined | null, tz: string | null | undefined) {
+  if (consent === 'granted') return true;
+  if (consent === 'denied') return false;
+  return countryFromTimezone(tz) === 'NL';
+}
 
 // --- Normalising and classifying ------------------------------------------------------
 
@@ -314,6 +331,14 @@ export type SessionRow = {
   os: string;
   country: string;
   language: string;
+  /** Statistics cookie id, when the visitor has one; the visit can then be linked to earlier visits. */
+  vid?: string | null;
+  /** 1 for the first visit with this cookie, 2 for the second, and so on. */
+  visit_no?: number | null;
+  first_seen_at?: number | null;
+  /** Where this visitor came from on their very first visit. */
+  first_channel?: Channel | null;
+  first_referrer?: string | null;
 };
 
 export type PageviewRow = {
@@ -396,6 +421,29 @@ export type Insight = {
   filter?: { key: FilterKey; value: string };
 };
 
+/** Only for visits with the statistics cookie: who comes back, and what brought customers in the first place. */
+export type Loyalty = {
+  /** Visits with the cookie, and their share of all visits. */
+  recognized: number;
+  coverage: number;
+  newSessions: number;
+  returningSessions: number;
+  /** Share of recognised visits that were a return visit. */
+  returningRate: number;
+  conversionNew: number;
+  conversionReturning: number;
+  /** Recognised visits with a booking or paid order. */
+  customers: number;
+  /** Of those, the share that converted on a return visit. */
+  convertedLater: number;
+  avgVisitsToConvert: number | null;
+  avgDaysToConvert: number | null;
+  visitsToConvert: { label: string; count: number }[];
+  daysToConvert: { label: string; count: number }[];
+  /** Conversions credited to the channel of the converting visit (last) and of the visitor's first visit (first). */
+  attribution: { key: Channel; first: number; last: number }[];
+};
+
 export type PageDetail = {
   path: string;
   title: string | null;
@@ -438,6 +486,7 @@ export type Report = {
   };
   insights: Insight[];
   pageDetail: PageDetail | null;
+  loyalty: Loyalty;
 };
 
 export type SessionSummary = {
@@ -456,13 +505,19 @@ export type SessionSummary = {
   paths: string[];
   goals: EventName[];
   events: number;
+  /** Null without the statistics cookie. */
+  visitNo: number | null;
+  firstSeenAt: number | null;
+  firstChannel: Channel | null;
+  firstReferrer: string | null;
 };
 
 export type TimelineItem =
   | { type: 'page'; at: number; path: string; title: string | null; duration: number; scroll: number | null; loadMs: number | null }
   | { type: 'event'; at: number; path: string; name: EventName; label: string | null; value: number | null };
 
-export type SessionDetail = SessionSummary & { timeline: TimelineItem[] };
+/** One visit, plus the visitor's other visits when they have the statistics cookie. */
+export type SessionDetail = SessionSummary & { timeline: TimelineItem[]; history: SessionSummary[] };
 
 export type ReportOptions = { from: number; to: number; tz: string; filters?: Filters; shopEnabled?: boolean };
 
@@ -502,6 +557,10 @@ function enrich(data: RawData): Map<number, Visit> {
   return visits;
 }
 
+/** Cookie visitors are one person across days; without the cookie, one per day. */
+const visitorKey = (s: SessionRow) => (s.vid ? `c:${s.vid}` : `d:${s.visitor}`);
+const isReturn = (s: SessionRow) => Boolean(s.vid) && (s.visit_no ?? 1) > 1;
+
 function matches(v: Visit, filters: Filters) {
   for (const [key, value] of Object.entries(filters) as [FilterKey, string][]) {
     if (value === undefined || value === '') continue;
@@ -518,6 +577,8 @@ function matches(v: Visit, filters: Filters) {
       : key === 'entry' ? (v.pvs[0]?.path ?? v.s.entry_path) === value
       : key === 'exit' ? v.exit === value
       : key === 'event' ? v.evs.some((ev) => ev.name === value)
+      : key === 'returning' ? (value === 'unknown' ? !v.s.vid : value === 'new' ? Boolean(v.s.vid) && !isReturn(v.s) : isReturn(v.s))
+      : key === 'firstChannel' ? Boolean(v.s.vid) && (v.s.first_channel ?? v.s.channel) === value
       : true;
     if (!ok) return false;
   }
@@ -526,7 +587,7 @@ function matches(v: Visit, filters: Filters) {
 
 function metrics(visits: Visit[]): Metrics {
   const sessions = visits.length;
-  const visitors = new Set(visits.map((v) => v.s.visitor)).size;
+  const visitors = new Set(visits.map((v) => visitorKey(v.s))).size;
   const pageviews = visits.reduce((n, v) => n + v.pvs.length, 0);
   const bounces = visits.filter((v) => !v.engaged).length;
   const conversions = visits.filter((v) => v.goals.size > 0).length;
@@ -619,7 +680,7 @@ function pageRows(visits: Visit[]): PageRow[] {
       let a = pages.get(pv.path);
       if (!a) pages.set(pv.path, (a = { views: 0, visitors: new Set(), entries: 0, bounces: 0, exits: 0, time: 0, timed: 0, scroll: 0, scrolled: 0, load: 0, loads: 0, title: null, titleAt: 0 }));
       a.views++;
-      a.visitors.add(v.s.visitor);
+      a.visitors.add(visitorKey(v.s));
       if (i === 0) {
         a.entries++;
         if (!v.engaged) a.bounces++;
@@ -762,11 +823,63 @@ function pageDetail(visits: Visit[], path: string): PageDetail | null {
   };
 }
 
+function loyalty(visits: Visit[]): Loyalty {
+  const known = visits.filter((v) => v.s.vid);
+  const returning = known.filter((v) => isReturn(v.s));
+  const fresh = known.filter((v) => !isReturn(v.s));
+  const converted = known.filter((v) => v.goals.size > 0);
+  const rate = (list: Visit[]) => (list.length ? list.filter((v) => v.goals.size > 0).length / list.length : 0);
+  const visitBands = [
+    { label: 'Bij het 1e bezoek', test: (n: number) => n <= 1 },
+    { label: 'Bij het 2e bezoek', test: (n: number) => n === 2 },
+    { label: 'Bij het 3e bezoek', test: (n: number) => n === 3 },
+    { label: 'Bij het 4e of 5e bezoek', test: (n: number) => n === 4 || n === 5 },
+    { label: 'Na 6 bezoeken of meer', test: (n: number) => n >= 6 },
+  ];
+  const dayBands = [
+    { label: 'Dezelfde dag', test: (d: number) => d < 1 },
+    { label: '1 tot 3 dagen', test: (d: number) => d >= 1 && d < 3 },
+    { label: '3 tot 7 dagen', test: (d: number) => d >= 3 && d < 7 },
+    { label: '1 tot 4 weken', test: (d: number) => d >= 7 && d < 28 },
+    { label: 'Meer dan 4 weken', test: (d: number) => d >= 28 },
+  ];
+  const visitNos = converted.map((v) => v.s.visit_no ?? 1);
+  const days = converted.map((v) => Math.max(0, v.s.started_at - (v.s.first_seen_at ?? v.s.started_at)) / 86_400_000);
+  const credit = new Map<Channel, { first: number; last: number }>();
+  const bump = (key: Channel, field: 'first' | 'last') => {
+    const c = credit.get(key) ?? { first: 0, last: 0 };
+    c[field]++;
+    credit.set(key, c);
+  };
+  for (const v of converted) {
+    bump(v.s.channel, 'last');
+    bump(v.s.first_channel ?? v.s.channel, 'first');
+  }
+  const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+  return {
+    recognized: known.length,
+    coverage: visits.length ? known.length / visits.length : 0,
+    newSessions: fresh.length,
+    returningSessions: returning.length,
+    returningRate: known.length ? returning.length / known.length : 0,
+    conversionNew: rate(fresh),
+    conversionReturning: rate(returning),
+    customers: converted.length,
+    convertedLater: converted.length ? converted.filter((v) => isReturn(v.s)).length / converted.length : 0,
+    avgVisitsToConvert: avg(visitNos),
+    avgDaysToConvert: avg(days),
+    visitsToConvert: visitBands.map((b) => ({ label: b.label, count: visitNos.filter(b.test).length })),
+    daysToConvert: dayBands.map((b) => ({ label: b.label, count: days.filter(b.test).length })),
+    attribution: [...credit.entries()].map(([key, c]) => ({ key, ...c })).sort((a, b) => b.first - a.first || b.last - a.last),
+  };
+}
+
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const WEEKDAYS = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
 
 /** Short, plain-language observations, most actionable first. */
 function insights(r: Omit<Report, 'insights' | 'pageDetail' | 'range'>, pages: PageRow[]): Insight[] {
+  const loyal = r.loyalty;
   const out: (Insight & { weight: number })[] = [];
   const { totals, previous } = r;
   const name = (p: PageRow) => (p.path === '/' ? 'de homepage' : `“${(p.title ?? p.path).split(' | ')[0]}”`);
@@ -832,7 +945,9 @@ function insights(r: Omit<Report, 'insights' | 'pageDetail' | 'range'>, pages: P
     });
   }
 
-  const leaky = pages.filter((p) => p.entries >= 15 && p.bounceRate >= 0.6).sort((a, b) => b.entries * b.bounceRate - a.entries * a.bounceRate)[0];
+  // Pages that don't exist have their own insight above.
+  const missing = new Set(r.issues.notFound.map((n) => n.path));
+  const leaky = pages.filter((p) => !missing.has(p.path) && p.entries >= 15 && p.bounceRate >= 0.6).sort((a, b) => b.entries * b.bounceRate - a.entries * a.bounceRate)[0];
   if (leaky)
     out.push({
       weight: 6,
@@ -842,7 +957,7 @@ function insights(r: Omit<Report, 'insights' | 'pageDetail' | 'range'>, pages: P
       filter: { key: 'page', value: leaky.path },
     });
 
-  const shallow = pages.filter((p) => p.views >= 20 && p.scroll !== null && p.scroll < 40).sort((a, b) => b.views - a.views)[0];
+  const shallow = pages.filter((p) => !missing.has(p.path) && p.views >= 20 && p.scroll !== null && p.scroll < 40).sort((a, b) => b.views - a.views)[0];
   if (shallow)
     out.push({
       weight: 4,
@@ -882,6 +997,28 @@ function insights(r: Omit<Report, 'insights' | 'pageDetail' | 'range'>, pages: P
         filter: { key: 'channel', value: best.key },
       });
   }
+
+  if (loyal.customers >= 5 && loyal.convertedLater >= 0.25 && loyal.avgVisitsToConvert !== null) {
+    out.push({
+      weight: 5,
+      tone: 'info',
+      title: `${pct(loyal.convertedLater)} van je klanten boekt of bestelt pas bij een later bezoek`,
+      text: `Gemiddeld bij bezoek ${loyal.avgVisitsToConvert.toFixed(1).replace('.', ',')}${loyal.avgDaysToConvert !== null ? `, ${Math.round(loyal.avgDaysToConvert)} dagen na het eerste` : ''}. Blijf zichtbaar voor mensen die al eens keken, bijv. met posts of een advertentie voor eerdere bezoekers.`,
+      filter: { key: 'returning', value: 'returning' },
+    });
+  }
+
+  const underrated = loyal.attribution
+    .filter((a) => a.first - a.last >= 3 && a.first >= a.last * 1.5)
+    .sort((a, b) => b.first - b.last - (a.first - a.last))[0];
+  if (underrated)
+    out.push({
+      weight: 6,
+      tone: 'good',
+      title: `Onderschat kanaal: ${CHANNEL_LABELS[underrated.key]}`,
+      text: `${underrated.first} klanten vonden je de eerste keer zo, terwijl er maar ${underrated.last} boekten of bestelden tijdens zo’n bezoek. De rest kwam later terug, vaak direct. Het kanaal levert dus meer op dan de gewone cijfers laten zien.`,
+      filter: { key: 'firstChannel', value: underrated.key },
+    });
 
   if (totals.sessions >= 50) {
     let peak = { d: 0, h: 0, n: 0 };
@@ -966,6 +1103,7 @@ export function buildReport(data: RawData, opts: ReportOptions): Report {
     events,
     funnels: funnels(current, opts.shopEnabled ?? true),
     heatmap,
+    loyalty: loyalty(current),
     issues: {
       notFound,
       errors: [...errorMap.entries()].map(([message, e]) => ({ message, ...e })).sort((a, b) => b.count - a.count).slice(0, 10),
@@ -1002,6 +1140,10 @@ function summary(v: Visit): SessionSummary {
     paths: v.pvs.map((pv) => pv.path).slice(0, 30),
     goals: [...v.goals],
     events: v.evs.length,
+    visitNo: v.s.vid ? (v.s.visit_no ?? 1) : null,
+    firstSeenAt: v.s.vid ? (v.s.first_seen_at ?? v.s.started_at) : null,
+    firstChannel: v.s.vid ? (v.s.first_channel ?? v.s.channel) : null,
+    firstReferrer: v.s.vid ? (v.s.first_referrer ?? null) : null,
   };
 }
 
@@ -1014,11 +1156,18 @@ export function listSessions(data: RawData, opts: ReportOptions, offset = 0, lim
 
 /** One visit, page by page, with everything the visitor did in between. */
 export function sessionDetail(data: RawData, id: number): SessionDetail | null {
-  const v = enrich(data).get(id);
+  const all = enrich(data);
+  const v = all.get(id);
   if (!v) return null;
+  const history = v.s.vid
+    ? [...all.values()]
+        .filter((o) => o.s.vid === v.s.vid && o.s.id !== id)
+        .sort((a, b) => b.s.started_at - a.s.started_at)
+        .map(summary)
+    : [];
   const timeline: TimelineItem[] = [
     ...v.pvs.map((pv, i): TimelineItem => ({ type: 'page', at: pv.created_at, path: pv.path, title: pv.title, duration: v.times[i], scroll: pv.scroll, loadMs: pv.load_ms })),
     ...v.evs.map((ev): TimelineItem => ({ type: 'event', at: ev.created_at, path: ev.path, name: ev.name, label: ev.label, value: ev.value })),
   ].sort((a, b) => a.at - b.at || (a.type === 'page' ? -1 : 1));
-  return { ...summary(v), timeline };
+  return { ...summary(v), timeline, history };
 }

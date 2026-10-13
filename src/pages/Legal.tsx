@@ -260,7 +260,8 @@ const PAGES: Record<PageId, { title: string; description: string; body: () => Re
         <P>
           Zonder toestemming gebruiken we alleen wat nodig is: de inhoud van je winkelwagen (lokaal in je browser, zodat die
           bewaard blijft als je de pagina opnieuw laadt) en een cookie die je cookiekeuze onthoudt. Daarvoor is geen
-          toestemming nodig.
+          toestemming nodig. Daarnaast gebruiken we een analytische cookie voor onze eigen statistieken; zie
+          Bezoekersstatistieken hieronder.
         </P>
         <P>
           Advertentiecookies van Meta (Facebook en Instagram) plaatsen we alleen als je daar in de cookiebanner toestemming
@@ -279,12 +280,24 @@ const PAGES: Record<PageId, { title: string; description: string; body: () => Re
         </P>
         <H2>Bezoekersstatistieken</H2>
         <P>
-          Om de website te verbeteren houden we anonieme statistieken bij: welke pagina’s worden bekeken en hoe lang, via
-          welke website je binnenkwam, het soort apparaat en browser, en acties zoals het aanvragen van een afspraak. We
-          gebruiken daarvoor geen cookies en slaan niets op je apparaat op. Je IP-adres wordt niet bewaard: we maken er
-          samen met je browsertype een anonieme code van die elke dag wordt vervangen, zodat bezoeken niet aan jou of aan
-          elkaar over meerdere dagen te koppelen zijn. Het land schatten we aan de hand van de tijdzone van je apparaat. De
-          statistieken worden niet gedeeld en na 25 maanden verwijderd.
+          Om de website te verbeteren houden we statistieken bij: welke pagina’s worden bekeken en hoe lang, hoe ver je
+          scrolt, via welke website of campagne je binnenkwam, het soort apparaat en browser, en acties zoals het aanvragen
+          van een afspraak of het afronden van een bestelling. Je IP-adres bewaren we daarbij niet: we maken er samen met je
+          browsertype een anonieme code van die elke dag wordt vervangen. Het land schatten we aan de hand van de tijdzone
+          van je apparaat.
+        </P>
+        <P>
+          Daarnaast gebruiken we een analytische cookie (d2g_vid) met een willekeurige code, zodat we zien of je eerder
+          langskwam: hoeveel bezoekers terugkomen, na hoeveel bezoeken iemand een afspraak maakt en via welk kanaal je ons de
+          eerste keer vond. Deze cookie is alleen voor onszelf: de gegevens blijven op onze eigen server, worden niet met
+          anderen gedeeld (ook niet met Meta) en worden niet gebruikt om je over andere websites te volgen. Omdat dat weinig
+          gevolgen heeft voor je privacy, mogen we deze cookie in Nederland zonder toestemming plaatsen; bezoek je ons vanuit
+          een ander land, dan doen we dat alleen als je cookies accepteert. De cookie blijft maximaal 13 maanden bewaard.
+        </P>
+        <P>
+          Wil je dit niet? Zet ‘Statistieken’ uit via ‘Cookie-instellingen’ onderaan elke pagina. Dan verwijderen we de cookie
+          en koppelen we je eerdere bezoeken los van elkaar. De statistieken worden niet gedeeld en na 25 maanden verwijderd.
+          De grondslag is ons gerechtvaardigd belang om de website te verbeteren, of je toestemming als je die gegeven hebt.
         </P>
         <H2>Je rechten</H2>
         <P>
