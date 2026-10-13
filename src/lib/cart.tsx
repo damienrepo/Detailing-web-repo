@@ -11,6 +11,7 @@ import {
   type Totals,
 } from '../../shared/pricing';
 import { track } from './analytics';
+import { trackMeta } from './metaPixel';
 
 const STORAGE_KEY = 'detail2go.cart.v1';
 
@@ -88,6 +89,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [...current, { productId, quantity }];
     });
     track('add_to_cart', productId, quantity);
+    const product = getProduct(productId);
+    if (product) {
+      trackMeta('AddToCart', { content_ids: [productId], content_type: 'product', content_name: product.name, value: (product.price * quantity) / 100, currency: 'EUR', num_items: quantity });
+    }
     setIsOpen(true);
   }, []);
 

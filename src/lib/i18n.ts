@@ -2,6 +2,7 @@
 // replaced by its stored machine translation (see server/translate.ts). React keeps rendering Dutch: we
 // translate the DOM after each change and put the Dutch back when switching back.
 import { useSyncExternalStore } from 'react';
+import { getSiteConfig } from './siteConfig';
 
 export type Lang = 'nl' | 'en';
 
@@ -55,12 +56,7 @@ export function setLanguage(next: Lang) {
 /** Called once at startup: English only when the server can translate (an API key is set). */
 export async function initLanguage() {
   if (lang === 'en') startTranslation();
-  try {
-    const res = await fetch('/api/config');
-    available = Boolean(((await res.json()) as { translate?: boolean }).translate);
-  } catch {
-    available = false;
-  }
+  available = Boolean((await getSiteConfig()).translate);
   if (!available && lang === 'en') {
     lang = 'nl';
     stopTranslation();

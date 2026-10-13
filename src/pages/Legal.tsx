@@ -252,13 +252,30 @@ const PAGES: Record<PageId, { title: string; description: string; body: () => Re
         <H2>Met wie we gegevens delen</H2>
         <P>
           Alleen met partijen die nodig zijn voor de uitvoering: Mollie (betalingen), {SITE.carrier} (bezorging: naam en
-          adres) en onze hosting- en e-mailprovider. Met hen hebben we waar nodig een verwerkersovereenkomst. We verkopen je
-          gegevens nooit.
+          adres) en onze hosting- en e-mailprovider. Met hen hebben we waar nodig een verwerkersovereenkomst. Alleen als je
+          daar toestemming voor geeft, delen we ook gegevens met Meta voor het meten van advertenties (zie Cookies). We
+          verkopen je gegevens nooit.
         </P>
         <H2>Cookies</H2>
         <P>
-          Deze website gebruikt geen tracking- of advertentiecookies. We slaan alleen de inhoud van je winkelwagen lokaal in
-          je browser op, zodat die bewaard blijft als je de pagina opnieuw laadt. Daarvoor is geen toestemming nodig.
+          Zonder toestemming gebruiken we alleen wat nodig is: de inhoud van je winkelwagen (lokaal in je browser, zodat die
+          bewaard blijft als je de pagina opnieuw laadt) en een cookie die je cookiekeuze onthoudt. Daarvoor is geen
+          toestemming nodig.
+        </P>
+        <P>
+          Advertentiecookies van Meta (Facebook en Instagram) plaatsen we alleen als je daar in de cookiebanner toestemming
+          voor geeft. Met de Meta Pixel meten we dan welke advertenties werken: welke pagina’s en producten je bekijkt, wat je
+          in je winkelwagen legt en of je een bestelling afrondt. Meta plaatst daarvoor de cookies _fbp en, als je via een
+          advertentie binnenkomt, _fbc (maximaal 90 dagen). Rond je met toestemming een bestelling af, dan melden we de
+          aankoop na betaling ook rechtstreeks vanaf onze server aan Meta (de Conversions API): het bestelnummer, de producten
+          en het bedrag, je IP-adres en browser, en gehashte (onleesbaar gemaakte) versies van je e-mailadres, telefoonnummer,
+          naam, woonplaats, postcode en land. Zo kan Meta de aankoop aan een advertentie koppelen. Meta Platforms Ireland is
+          voor wat het zelf met deze gegevens doet zelf verantwoordelijk; gegevens kunnen daarbij ook buiten de EU worden
+          verwerkt. De grondslag is je toestemming.
+        </P>
+        <P>
+          Je kunt je keuze altijd wijzigen via ‘Cookie-instellingen’ onderaan elke pagina. Weiger je of trek je je
+          toestemming in, dan laden we de Meta Pixel niet en sturen we niets naar Meta.
         </P>
         <H2>Bezoekersstatistieken</H2>
         <P>

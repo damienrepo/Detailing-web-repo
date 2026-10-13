@@ -1,5 +1,5 @@
 import { Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { getBundle, getProduct, getProductBySlug, listedProducts, productPhotos, type Product } from '../../shared/catalog';
 import { deliveryCountries, formatPrice, PICKUP } from '../../shared/pricing';
@@ -10,6 +10,7 @@ import { Button, ButtonLink, Price, QuantityStepper } from '../components/ui';
 import { useCart } from '../lib/cart';
 import { imageSrcSet, imageUrl } from '../lib/images';
 import { usePageMeta, useStructuredData } from '../lib/meta';
+import { trackMeta } from '../lib/metaPixel';
 import NotFound from './NotFound';
 
 /** One large photo with thumbnails below; swipe or use the arrows to browse. A single photo or the illustration otherwise. */
@@ -99,6 +100,9 @@ export default function ProductPage() {
 
 function ProductDetail({ product }: { product: Product }) {
   const { add } = useCart();
+  useEffect(() => {
+    trackMeta('ViewContent', { content_ids: [product.id], content_type: 'product', content_name: product.name, value: product.price / 100, currency: 'EUR' });
+  }, [product.id, product.name, product.price]);
   const [quantity, setQuantity] = useState(1);
 
   usePageMeta(product.name, `${product.tagline} ${formatPrice(product.price)} incl. btw. Verzonden binnen ${SITE.dispatchDays}.`);

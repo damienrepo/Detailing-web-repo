@@ -2,12 +2,14 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Link, Outlet, Route, Routes, useLocation } from 'react-router';
 import { CartDrawer } from './components/CartDrawer';
 import { ContactWidget } from './components/ContactWidget';
+import { CookieBanner } from './components/CookieBanner';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { useAnalytics } from './lib/analytics';
 import { CartProvider } from './lib/cart';
 import { DEMO } from './lib/demo';
 import { startTranslation, stopTranslation, useLanguage } from './lib/i18n';
+import { useMetaPageViews } from './lib/metaPixel';
 import Home from './pages/Home';
 import Services from './pages/Services';
 import ServicePage from './pages/Service';
@@ -50,6 +52,7 @@ function PageTracker() {
 
 function Layout() {
   const { lang } = useLanguage();
+  useMetaPageViews();
   // The admin is not translated: stop when leaving the public pages, resume when coming back.
   useEffect(() => {
     if (lang !== 'en') return;
@@ -68,6 +71,7 @@ function Layout() {
       <Footer />
       {SHOP.enabled && <CartDrawer />}
       <ContactWidget />
+      <CookieBanner />
       {DEMO && <DemoBadge />}
     </>
   );

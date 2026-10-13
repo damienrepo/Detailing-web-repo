@@ -9,6 +9,7 @@ import { ContentStore } from './content';
 import { openDb } from './db';
 import { createPaymentResolver } from './payments';
 import { createCipher, loadEncryptionKey } from './security';
+import { retryMetaPurchases } from './meta';
 import { importSeed } from './seed';
 import { renderIndex } from './seo';
 import { overridesFromConfig, SettingsStore } from './settings';
@@ -58,6 +59,13 @@ if (config.production) {
       next(err);
     }
   });
+}
+
+// Purchases that did not reach Meta's Conversions API right away are retried in the background.
+if (config.meta.pixelId && config.meta.accessToken) {
+  setInterval(() => void retryMetaPurchases(db, config.meta).catch((err) => console.error('[meta]', err)), 10 * 60_000).unref();
+} else if (process.env.META_PIXEL_ID || process.env.META_CAPI_ACCESS_TOKEN) {
+  console.warn('[meta] Zet zowel een geldige META_PIXEL_ID als META_CAPI_ACCESS_TOKEN; zonder beide gaan aankopen niet naar de Conversions API.');
 }
 
 app.listen(config.port, () => {

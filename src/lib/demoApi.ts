@@ -119,6 +119,7 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
       shipped_at: null,
       ready_at: null,
       collected_at: null,
+      marketing_consent: 0, fbp: null, fbc: null, client_ip: null, client_user_agent: null, event_source_url: null, meta_purchase_sent_at: null, meta_attempts: 0, meta_claimed_at: null, meta_last_error: null,
       items: totals.lines.map((l) => ({
         product_id: l.product.id,
         sku: l.product.sku,

@@ -45,7 +45,20 @@ export type OrderRow = {
   shipped_at: string | null;
   ready_at: string | null;
   collected_at: string | null;
+  marketing_consent: number;
+  fbp: string | null;
+  fbc: string | null;
+  client_ip: string | null;
+  client_user_agent: string | null;
+  event_source_url: string | null;
+  meta_purchase_sent_at: string | null;
+  meta_attempts: number;
+  meta_claimed_at: number | null;
+  meta_last_error: string | null;
 };
+
+/** Stored with the order for Meta's Conversions API; everything but `consent` only when consent was given. */
+export type OrderTracking = { consent: boolean; fbp?: string; fbc?: string; ip?: string; userAgent?: string; url?: string };
 
 export type OrderItemRow = {
   product_id: string;
@@ -58,7 +71,7 @@ export type OrderItemRow = {
 
 export type Order = OrderRow & { items: OrderItemRow[] };
 
-export function createOrder(db: Db, customer: Customer, totals: Totals, shippingMethod: ShippingMethod = 'delivery'): Order {
+export function createOrder(db: Db, customer: Customer, totals: Totals, shippingMethod: ShippingMethod = 'delivery', tracking: OrderTracking = { consent: false }): Order {
   const publicId = crypto.randomBytes(16).toString('base64url');
   const insert = db.transaction(() => {
     const { lastInsertRowid } = db
@@ -81,6 +94,11 @@ export function createOrder(db: Db, customer: Customer, totals: Totals, shipping
       });
     const id = Number(lastInsertRowid);
     db.prepare('UPDATE orders SET number = ? WHERE id = ?').run(orderNumber(id), id);
+    if (tracking.consent) {
+      db.prepare(
+        `UPDATE orders SET marketing_consent = 1, fbp = ?, fbc = ?, client_ip = ?, client_user_agent = ?, event_source_url = ? WHERE id = ?`,
+      ).run(tracking.fbp ?? null, tracking.fbc ?? null, tracking.ip ?? null, tracking.userAgent ?? null, tracking.url ?? null, id);
+    }
     const insertItem = db.prepare(
       `INSERT INTO order_items (order_id, product_id, sku, name, unit_price, quantity, line_total)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,

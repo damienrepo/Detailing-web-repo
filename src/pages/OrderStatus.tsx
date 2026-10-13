@@ -10,9 +10,46 @@ import { api, ApiError } from '../lib/api';
 import { useCart } from '../lib/cart';
 import { goToPayment } from '../lib/demo';
 import { usePageMeta } from '../lib/meta';
+import { trackMeta } from '../lib/metaPixel';
 
 const POLL_MS = 3000;
 const POLL_LIMIT = 40;
+
+/**
+ * Purchase in the browser, only for a paid order and once per order in this browser. The event ID is the
+ * order number, the same as the server's Conversions API event, so Meta counts the purchase once.
+ * Orders older than two days (an old e-mail link) are left alone: Meta only deduplicates within 48 hours.
+ */
+function metaPurchaseOnce(order: PublicOrder) {
+  const key = `d2g-meta-purchase-${order.number}`;
+  const created = Date.parse(`${order.createdAt.replace(' ', 'T')}Z`);
+  if (!(Date.now() - created < 48 * 3600_000)) return;
+  try {
+    if (localStorage.getItem(key) || sessionStorage.getItem(key)) return;
+  } catch {
+    /* storage blocked: Meta's deduplication on the event ID still prevents double counting */
+  }
+  const sent = trackMeta(
+    'Purchase',
+    {
+      // Products incl. VAT, without shipping (same as the server event).
+      value: order.subtotal / 100,
+      currency: 'EUR',
+      content_ids: [...new Set(order.items.map((i) => i.productId))],
+      content_type: 'product',
+      num_items: order.items.reduce((n, i) => n + i.quantity, 0),
+    },
+    order.number,
+  );
+  if (!sent) return;
+  for (const storage of [localStorage, sessionStorage]) {
+    try {
+      storage.setItem(key, '1');
+    } catch {
+      /* ignore */
+    }
+  }
+}
 
 export default function OrderStatus() {
   usePageMeta('Je bestelling', undefined, { noindex: true });
@@ -36,7 +73,10 @@ export default function OrderStatus() {
         setOrder(data);
         if (data.status === 'paid' || data.status === 'shipped') clearCart.current();
         // Counted once per order on the server, however often this page is opened.
-        if (['paid', 'shipped', 'ready', 'collected'].includes(data.status)) track('purchase', data.number, data.total);
+        if (['paid', 'shipped', 'ready', 'collected'].includes(data.status)) {
+          track('purchase', data.number, data.total);
+          metaPurchaseOnce(data);
+        }
         // A payment can stay "open" for a moment after returning from the bank.
         if (data.status === 'open' && polls.current++ < POLL_LIMIT) timer = setTimeout(load, POLL_MS);
       } catch (err) {

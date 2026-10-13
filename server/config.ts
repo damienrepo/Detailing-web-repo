@@ -14,6 +14,8 @@ export type Config = {
   // Values below come from the environment and, when set, override what is entered in the admin.
   mollieApiKey?: string;
   anthropicApiKey?: string;
+  /** Meta Pixel (public) and Conversions API token (server only); both needed for ad tracking. */
+  meta: { pixelId?: string; accessToken?: string; testEventCode?: string };
   smtp?: { host: string; port: number; user?: string; pass?: string; secure: boolean };
   mailFrom?: string;
   notifyEmail?: string;
@@ -34,6 +36,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     secretKey: env.SECRET_KEY?.trim() || undefined,
     mollieApiKey: env.MOLLIE_API_KEY?.trim() || undefined,
     anthropicApiKey: env.ANTHROPIC_API_KEY?.trim() || undefined,
+    meta: {
+      pixelId: /^\d{5,20}$/.test(env.META_PIXEL_ID?.trim() ?? '') ? env.META_PIXEL_ID!.trim() : undefined,
+      accessToken: env.META_CAPI_ACCESS_TOKEN?.trim() || undefined,
+      testEventCode: env.META_TEST_EVENT_CODE?.trim() || undefined,
+    },
     smtp: smtpHost
       ? {
           host: smtpHost,

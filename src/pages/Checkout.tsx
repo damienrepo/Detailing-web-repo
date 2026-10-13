@@ -1,5 +1,5 @@
 import { Lock, MapPin, Store, Truck } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import {
   availableMethods,
@@ -20,6 +20,7 @@ import { api, ApiError } from '../lib/api';
 import { useCart } from '../lib/cart';
 import { DEMO, goToPayment } from '../lib/demo';
 import { usePageMeta } from '../lib/meta';
+import { trackMeta } from '../lib/metaPixel';
 
 type Form = {
   email: string;
@@ -62,6 +63,20 @@ export default function Checkout() {
   const [formError, setFormError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const [paymentMode, setPaymentMode] = useState<string>();
+
+  // Once per visit to the checkout, with what is in the cart (products incl. VAT, like the Purchase value).
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current || !cart.items.length) return;
+    checkoutTracked.current = true;
+    trackMeta('InitiateCheckout', {
+      content_ids: cart.items.map((i) => i.productId),
+      content_type: 'product',
+      value: totals.subtotal / 100,
+      currency: 'EUR',
+      num_items: cart.items.reduce((n, i) => n + i.quantity, 0),
+    });
+  }, [cart.items, totals.subtotal]);
 
   useEffect(() => {
     api<{ payments: string }>('/config')

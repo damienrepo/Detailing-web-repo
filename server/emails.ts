@@ -244,6 +244,7 @@ export function sampleMail(kind: EmailKind, settings: EmailSettings, appUrl: str
     shipped_at: null,
     ready_at: null,
     collected_at: null,
+    marketing_consent: 0, fbp: null, fbc: null, client_ip: null, client_user_agent: null, event_source_url: null, meta_purchase_sent_at: null, meta_attempts: 0, meta_claimed_at: null, meta_last_error: null,
     items: [
       { product_id: 'interior-kit', sku: 'D2G-KIT-01', name: 'Interior Care Kit', unit_price: 2995, quantity: 1, line_total: 2995 },
       { product_id: 'microfiber-towel', sku: 'D2G-MF-40', name: 'Microvezel doek', unit_price: 795, quantity: 1, line_total: 795 },

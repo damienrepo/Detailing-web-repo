@@ -48,8 +48,11 @@ import { createPaymentResolver, MockProvider, verifyMollieKey, type PaymentProvi
 import { createCipher, loadEncryptionKey, type Cipher } from './security';
 import { overridesFromConfig, settingsInputSchema, SettingsStore } from './settings';
 import { claudeEngine, LANGS, TRANSLATE_LIMITS, Translator, type TranslateEngine } from './translate';
+import { sendMetaPurchase, trackingFromRequest } from './meta';
 
 export type AppDeps = {
+  /** Fetch used for Meta's Conversions API (tests). */
+  metaFetch?: typeof fetch;
   /** Fixed translation engine (tests). Defaults to Claude with the API key from the admin settings. */
   translateEngine?: TranslateEngine;
   config: Config;
@@ -129,6 +132,8 @@ export function createApp(deps: AppDeps) {
   });
 
   const app = express();
+  const meta = config.meta.pixelId ? ' https://www.facebook.com' : '';
+  const metaScript = config.meta.pixelId ? ' https://connect.facebook.net' : '';
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
 
@@ -142,8 +147,9 @@ export function createApp(deps: AppDeps) {
     if (config.production) {
       res.set(
         'Content-Security-Policy',
-        "default-src 'self'; img-src 'self' data: https://images.unsplash.com; style-src 'self' 'unsafe-inline'; " +
-          "script-src 'self'; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+        // Meta's Pixel (loaded only after consent) needs its script host and its collection endpoint.
+        `default-src 'self'; img-src 'self' data: https://images.unsplash.com${meta}; style-src 'self' 'unsafe-inline'; ` +
+          `script-src 'self'${metaScript}; connect-src 'self'${meta}${metaScript}; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`,
       );
       res.set('Strict-Transport-Security', 'max-age=31536000');
     }
@@ -164,7 +170,16 @@ export function createApp(deps: AppDeps) {
     ? `${config.appUrl}/api/webhooks/mollie`
     : undefined;
 
+  // Purchase to Meta's Conversions API, alongside (never instead of) the rest of onPaid. Tests wait on metaIdle.
+  const metaJobs = new Set<Promise<void>>();
+  const queueMetaPurchase = (orderId: number) => {
+    const job = sendMetaPurchase(db, orderId, config.meta, deps.metaFetch).finally(() => metaJobs.delete(job));
+    metaJobs.add(job);
+  };
+  app.locals.metaIdle = () => Promise.all([...metaJobs]);
+
   async function onPaid(order: Order) {
+    queueMetaPurchase(order.id);
     await sendSafely(mailer, orderConfirmationMail(order, orderUrl(order)));
     const notify = notifyEmail();
     if (notify) await sendSafely(mailer, orderNotificationMail(order, notify, config.appUrl));
@@ -210,7 +225,7 @@ export function createApp(deps: AppDeps) {
   });
 
   api.get('/config', (_req, res) => {
-    res.json({ payments: getPayments()?.mode ?? 'off', translate: translator.enabled });
+    res.json({ payments: getPayments()?.mode ?? 'off', translate: translator.enabled, ...(config.meta.pixelId ? { metaPixelId: config.meta.pixelId } : {}) });
   });
 
   // --- Translation (public) ----------------------------------------------
@@ -259,7 +274,7 @@ export function createApp(deps: AppDeps) {
         shippingMethod === 'pickup'
           ? { street: '', houseNumber: '', postalCode: '', city: '' }
           : { street: customer.street, houseNumber: customer.houseNumber, postalCode: customer.postalCode.toUpperCase(), city: customer.city };
-      const order = createOrder(db, { ...customer, ...address }, totals, shippingMethod);
+      const order = createOrder(db, { ...customer, ...address }, totals, shippingMethod, trackingFromRequest(req, config.appUrl));
       const checkoutUrl = await startPayment(order);
       res.status(201).json({ checkoutUrl, orderId: order.public_id });
     }),

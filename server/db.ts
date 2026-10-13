@@ -187,6 +187,18 @@ const MIGRATIONS: string[] = [
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (lang, source)
   ) WITHOUT ROWID;`,
+  // Meta Conversions API: what is needed to send the Purchase server-side, stored only with marketing consent,
+  // and the state of that send (see server/meta.ts).
+  `ALTER TABLE orders ADD COLUMN marketing_consent INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE orders ADD COLUMN fbp TEXT;
+  ALTER TABLE orders ADD COLUMN fbc TEXT;
+  ALTER TABLE orders ADD COLUMN client_ip TEXT;
+  ALTER TABLE orders ADD COLUMN client_user_agent TEXT;
+  ALTER TABLE orders ADD COLUMN event_source_url TEXT;
+  ALTER TABLE orders ADD COLUMN meta_purchase_sent_at TEXT;
+  ALTER TABLE orders ADD COLUMN meta_attempts INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE orders ADD COLUMN meta_claimed_at INTEGER;
+  ALTER TABLE orders ADD COLUMN meta_last_error TEXT;`,
 ];
 
 export function openDb(file: string): Db {
