@@ -25,7 +25,9 @@ export function CookieBanner() {
   if (!settingsOpen && !mustAsk) return null;
 
   const statsOn = statistics === 'granted' || (statistics === undefined && exempt);
-  const button = 'h-11 flex-1 border border-paper/40 bg-paper px-4 text-[15px] font-medium text-ink transition-colors hover:bg-white';
+  // Accepting is the gold button; refusing is a button of the same size right below it, so it is just as easy.
+  const accept = 'h-12 w-full bg-accent-fill px-4 text-base font-semibold text-ink transition-colors hover:bg-accent';
+  const decline = 'h-12 w-full border border-paper/50 px-4 text-base font-medium text-paper transition-colors hover:border-paper hover:bg-white/5';
   const acceptAll = () => setChoices({ statistics: 'granted', ...(hasPixel ? { marketing: 'granted' } : {}) });
   // Refusing turns off everything that needs consent. On first ask, a Dutch visitor's statistics stay on (no consent
   // needed; the banner says so). Someone who reopens the settings to refuse gets everything switched off.
@@ -52,7 +54,7 @@ export function CookieBanner() {
       </div>
 
       {details ? (
-        <Settings hasPixel={hasPixel} statsOn={statsOn} marketing={consent} onSave={(c) => setChoices(c)} onAcceptAll={acceptAll} button={button} />
+        <Settings hasPixel={hasPixel} statsOn={statsOn} marketing={consent} onSave={(c) => setChoices(c)} onAcceptAll={acceptAll} accept={accept} decline={decline} />
       ) : (
         <>
           <p id="cookie-text" className="mt-2 text-sm leading-relaxed text-paper/70">
@@ -68,12 +70,12 @@ export function CookieBanner() {
               {hasPixel && `, marketing ${consent === 'granted' ? 'aan' : 'uit'}`}.
             </p>
           )}
-          <div className="mt-5 flex gap-3">
-            <button type="button" className={button} onClick={refuse}>
-              Weigeren
-            </button>
-            <button type="button" className={button} onClick={acceptAll}>
+          <div className="mt-5 flex flex-col gap-2.5">
+            <button type="button" className={accept} onClick={acceptAll}>
               Accepteren
+            </button>
+            <button type="button" className={decline} onClick={refuse}>
+              Weigeren
             </button>
           </div>
           <div className="mt-3 flex justify-between gap-4 text-sm text-paper/60">
@@ -96,14 +98,16 @@ function Settings({
   marketing,
   onSave,
   onAcceptAll,
-  button,
+  accept,
+  decline,
 }: {
   hasPixel: boolean;
   statsOn: boolean;
   marketing: Consent | undefined;
   onSave: (choices: { statistics: Consent; marketing?: Consent }) => void;
   onAcceptAll: () => void;
-  button: string;
+  accept: string;
+  decline: string;
 }) {
   const [stats, setStats] = useState(statsOn);
   const [ads, setAds] = useState(marketing === 'granted');
@@ -116,12 +120,12 @@ function Settings({
         <Switch label="Statistieken" text="Onthoudt of je eerder langskwam, zodat we zien hoe bezoekers de site gebruiken. Blijft bij ons en wordt niet gedeeld." checked={stats} onChange={setStats} />
         {hasPixel && <Switch label="Marketing" text="Meta (Facebook en Instagram) meet welke advertenties werken en kan je passende advertenties tonen." checked={ads} onChange={setAds} />}
       </div>
-      <div className="mt-5 flex gap-3">
-        <button type="button" className={button} onClick={() => onSave({ statistics: stats ? 'granted' : 'denied', ...(hasPixel ? { marketing: ads ? 'granted' : 'denied' } : {}) })}>
-          Keuze opslaan
-        </button>
-        <button type="button" className={button} onClick={onAcceptAll}>
+      <div className="mt-5 flex flex-col gap-2.5">
+        <button type="button" className={accept} onClick={onAcceptAll}>
           Alles accepteren
+        </button>
+        <button type="button" className={decline} onClick={() => onSave({ statistics: stats ? 'granted' : 'denied', ...(hasPixel ? { marketing: ads ? 'granted' : 'denied' } : {}) })}>
+          Keuze opslaan
         </button>
       </div>
     </>
