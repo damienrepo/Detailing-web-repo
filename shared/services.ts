@@ -2,13 +2,14 @@
 // TODO: check prices, durations, on-location availability and FAQ answers against the actual offer.
 import { formatPrice, VAT_RATE } from './pricing';
 
-export type ServiceCategory = 'wassen' | 'interieur' | 'lak' | 'herstel';
+export type ServiceCategory = 'wassen' | 'interieur' | 'lak' | 'herstel' | 'bedrijven';
 
 export const CATEGORIES: { id: ServiceCategory; name: string; title: string; intro: string }[] = [
   { id: 'wassen', name: 'Wassen & onderhoud', title: 'Schoon, zonder krassen.', intro: 'Een veilige, grondige wasbeurt — eenmalig, bij je thuis of als vast abonnement.' },
   { id: 'interieur', name: 'Interieur & techniek', title: 'Fris tot in elke hoek.', intro: 'Van stoelrails tot motorruimte: schoon tot in de hoeken die je normaal niet ziet.' },
   { id: 'lak', name: 'Lak & bescherming', title: 'Glans die blijft.', intro: 'Glans terugbrengen en de lak daarna jarenlang beschermen.' },
   { id: 'herstel', name: 'Herstel', title: 'Alsof het nooit gebeurd is.', intro: 'Deuken, krassen en lakschade herstellen, zo dicht mogelijk bij de fabrieksstaat.' },
+  { id: 'bedrijven', name: 'Bedrijfsvoertuigen', title: 'Rijdende reclame.', intro: 'Je bus of bedrijfsauto als visitekaartje: van logo en belettering tot een complete wrap.' },
 ];
 
 export type ServiceOption = {
@@ -718,6 +719,83 @@ export const SERVICES: Service[] = [
       { q: 'Kunnen jullie hagelschade herstellen?', a: 'Ja, hagelschade herstellen we meestal met uitdeuken zonder spuiten. Vraag gerust een inspectie aan.' },
     ],
     related: ['polijsten', 'ppf', 'coatings'],
+  },
+  // TODO: check the options, the design service and the FAQ answers against how you actually work. The photo is
+  // a stand-in from the PPF page: upload a photo of a vehicle you lettered in the admin (Diensten → Hoofdfoto).
+  {
+    id: 'bestickering-bedrijfsvoertuigen',
+    name: 'Bestickering bedrijfsvoertuigen',
+    category: 'bedrijven',
+    tagline: 'Van logo en belettering tot een complete wrap van je bus of bedrijfsauto.',
+    summary:
+      'Je bedrijfsauto, bus of aanhanger voorzien van logo, belettering of een complete wrap in je huisstijl. Strak aangebracht in onze werkplaats.',
+    intro: [
+      'Een bedrijfsauto rijdt elke dag door de regio en wordt door heel veel mensen gezien. Met goede bestickering wordt hij een rijdend visitekaartje: herkenbaar, professioneel en altijd onderweg, ook als hij bij een klant voor de deur staat.',
+      'We bestickeren bestelbussen, bedrijfsauto’s, pick-ups en aanhangers. Van alleen je logo, website en telefoonnummer tot een deelwrap of een volledige wrap in je huisstijl of in een nieuwe kleur. Heb je meerdere voertuigen, dan zorgen we dat ze er allemaal hetzelfde uitzien.',
+      'De folie beschermt bovendien de lak eronder tegen kleine krasjes en zonlicht. Verkoop je de auto of loopt de lease af, dan kan hoogwaardige folie er weer af en komt de originele lak tevoorschijn.',
+    ],
+    fromPrice: null,
+    duration: 'In overleg',
+    onLocation: false,
+    image: 'ppf-aanbrengen',
+    imageAlt: 'Folie wordt met een rakel strak op een autodeur aangebracht',
+    includes: [
+      'Advies over opmaak en leesbaarheid op het voertuig',
+      'Opmaak op maat van jouw voertuig, vooraf ter goedkeuring',
+      'Grondig reinigen en ontvetten vóór het plakken',
+      'Folie op maat gesneden voor jouw voertuig',
+      'Strak aangebracht, ook rond rondingen, handgrepen en randen',
+      'Nacontrole en onderhoudsadvies',
+    ],
+    benefits: [
+      { title: 'Rijdende reclame', text: 'Je voertuig wordt elke dag gezien: onderweg, op de parkeerplaats en bij je klanten voor de deur.' },
+      { title: 'Professionele uitstraling', text: 'Een herkenbare, verzorgde bus laat zien dat je je vak serieus neemt, nog voordat je uitstapt.' },
+      { title: 'Beschermt de lak', text: 'De folie vangt kleine krasjes en zonlicht op, zodat de lak eronder in goede staat blijft.' },
+      { title: 'Flexibel', text: 'Nieuw logo, ander telefoonnummer of de auto de deur uit? Folie is te vervangen of te verwijderen.' },
+    ],
+    options: [
+      {
+        title: 'Van subtiel tot opvallend',
+        intro: 'De prijs hangt af van het voertuig, het formaat en het ontwerp. Je krijgt altijd vooraf een offerte op maat.',
+        style: 'cards',
+        options: [
+          {
+            name: 'Belettering',
+            label: 'Logo & gegevens',
+            text: 'Je logo, bedrijfsnaam, website en telefoonnummer op de zijkanten, de achterkant en eventueel de motorkap. Strak en zakelijk.',
+            items: ['Logo en bedrijfsnaam', 'Telefoonnummer, website en socials', 'Zijkanten, achterdeuren en/of motorkap', 'Ideaal voor een heel wagenpark'],
+          },
+          {
+            name: 'Deelwrap',
+            label: 'Opvallend',
+            text: 'Een deel van het voertuig in folie, bijvoorbeeld de achterkant of grafische vlakken over de zijkanten, gecombineerd met je belettering.',
+            items: ['Grafische vlakken in je huisstijl', 'Gecombineerd met belettering', 'Veel uitstraling voor een lager budget dan een full wrap'],
+          },
+          {
+            name: 'Full wrap',
+            label: 'Maximaal',
+            text: 'Het hele voertuig in folie: met een volledig ontwerp in je huisstijl, of gewoon in een nieuwe kleur. Maximale zichtbaarheid, en de lak eronder blijft beschermd.',
+            items: ['Alle zichtbare panelen in folie', 'Volledig ontwerp of effen kleur in glans, satin of mat', 'Originele lak blijft beschermd', 'Te verwijderen bij verkoop of einde lease'],
+          },
+        ],
+      },
+    ],
+    steps: [
+      { title: 'Kennismaking', text: 'Je vertelt wat je wilt laten zien en we bekijken het voertuig. Stuur gerust alvast foto’s en je logo mee.' },
+      { title: 'Ontwerp & offerte', text: 'We maken een opzet op maat van je voertuig en sturen een offerte. Pas na jouw akkoord gaan we aan de slag.' },
+      { title: 'Voorbereiden', text: 'Het voertuig wordt grondig gereinigd en ontvet, zodat de folie overal goed hecht.' },
+      { title: 'Aanbrengen', text: 'In onze werkplaats brengen we de folie strak aan, ook rond rondingen, handgrepen en randen.' },
+      { title: 'Oplevering', text: 'We lopen het resultaat samen met je na en geven advies over het onderhoud.' },
+    ],
+    faq: [
+      { q: 'Wat kost het bestickeren van een bedrijfsauto?', a: 'Dat hangt af van het voertuig, het formaat van de belettering en hoeveel folie er nodig is. Stuur foto’s van je voertuig en je logo mee met je aanvraag, dan sturen we een offerte op maat.' },
+      { q: 'Kunnen jullie ook de opmaak verzorgen?', a: 'Ja. Lever je logo en huisstijl aan, dan maken we een opmaak die past bij de vorm van je voertuig, en je ziet vooraf hoe het eruit komt te zien. Heb je al een kant-en-klaar ontwerp, dan werken we daarmee.' },
+      { q: 'Welke voertuigen bestickeren jullie?', a: 'Bestelbussen, bedrijfsauto’s, pick-ups en aanhangers. Twijfel je of jouw voertuig geschikt is? Neem gerust even contact op.' },
+      { q: 'Beschadigt de folie de lak?', a: 'Nee. Op gave fabriekslak kan hoogwaardige folie er later weer af zonder de lak te beschadigen. Is de lak al eens overgespoten of beschadigd, dan bespreken we dat vooraf.' },
+      { q: 'Hoe lang gaat bestickering mee?', a: 'Dat hangt af van de gekozen folie en hoe het voertuig gebruikt wordt. Hoogwaardige folie gaat jarenlang mee; de verwachte levensduur staat in je offerte.' },
+      { q: 'Hoe onderhoud ik een bestickerd voertuig?', a: 'Was het bij voorkeur met de hand met een pH-neutrale shampoo. Richt een hogedrukspuit niet van dichtbij op de randen van de folie en vermijd borstelwasstraten. Met een handwas abonnement regelen we dat voor je.' },
+    ],
+    related: ['handwas-abonnement', 'ppf', 'schadeherstel'],
   },
 ];
 
