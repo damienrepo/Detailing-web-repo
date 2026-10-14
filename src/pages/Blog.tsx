@@ -19,7 +19,7 @@ export default function Blog() {
 
   useEffect(() => {
     api<PostSummary[]>('/posts')
-      .then(setPosts)
+      .then((list) => (Array.isArray(list) ? setPosts(list) : setError(true)))
       .catch(() => setError(true));
   }, []);
 

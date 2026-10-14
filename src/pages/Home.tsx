@@ -378,7 +378,7 @@ function LatestPosts({ index }: { index: string }) {
   const [posts, setPosts] = useState<PostSummary[]>([]);
   useEffect(() => {
     api<PostSummary[]>('/posts?limit=3')
-      .then(setPosts)
+      .then((list) => setPosts(Array.isArray(list) ? list : []))
       .catch(() => setPosts([]));
   }, []);
   if (posts.length === 0) return null;

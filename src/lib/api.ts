@@ -30,7 +30,14 @@ export async function api<T>(path: string, options: { method?: string; body?: un
   } catch {
     throw new ApiError('Geen verbinding. Controleer je internet en probeer het opnieuw.', 0);
   }
-  const data = await res.json().catch(() => ({}));
+  const text = await res.text().catch(() => '');
+  let data: { error?: string; fields?: Record<string, string> } = {};
+  try {
+    if (text) data = JSON.parse(text);
+  } catch {
+    // An HTML page instead of data (a proxy, a captive portal or a restarting server): don't pass it off as a result.
+    if (res.ok) throw new ApiError('De server gaf een onverwacht antwoord. Probeer het opnieuw.', res.status);
+  }
   if (!res.ok) throw new ApiError(data.error ?? 'Er ging iets mis.', res.status, data.fields);
   return data as T;
 }
