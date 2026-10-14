@@ -8,7 +8,9 @@ import { Reveal } from '../components/Reveal';
 import { AskUs, ClosingCta, FaqList, SectionHeading } from '../components/Section';
 import { ServiceCard, serviceImage, serviceSrcSet } from '../components/ServiceCard';
 import { ButtonLink, Eyebrow, TextLink } from '../components/ui';
+import { breadcrumbSchema, faqSchema, serviceSchema } from '../../shared/schema';
 import { usePageMeta, useStructuredData } from '../lib/meta';
+import { useOrigin } from '../lib/ssr';
 import NotFound from './NotFound';
 
 /** Desktop column count per number of items (full class names so Tailwind picks them up). */
@@ -27,18 +29,10 @@ function ServiceDetail({ service }: { service: Service }) {
   const related = service.related.map((id) => getService(id)).filter((s) => s !== undefined);
 
   usePageMeta(service.name, serviceMetaDescription(service));
-  useStructuredData('service', {
-    '@context': 'https://schema.org',
-    '@type': 'Service',
-    name: service.name,
-    description: service.summary,
-    image: location.origin + serviceImage(service.image),
-    areaServed: SITE.region,
-    provider: { '@type': 'AutomotiveBusiness', name: SITE.fullName, telephone: SITE.phone, email: SITE.email },
-    ...(service.fromPrice !== null && {
-      offers: { '@type': 'Offer', priceCurrency: 'EUR', price: (service.fromPrice / 100).toFixed(2) },
-    }),
-  });
+  const origin = useOrigin();
+  useStructuredData('service', serviceSchema(origin, service));
+  useStructuredData('breadcrumbs', breadcrumbSchema(origin, [{ name: 'Diensten', path: '/diensten' }, { name: service.name, path: `/diensten/${service.id}` }]));
+  useStructuredData('faq', faqSchema(service.faq));
 
   // Section numbers follow the sections that are actually shown.
   let n = 0;

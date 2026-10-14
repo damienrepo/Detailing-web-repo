@@ -9,7 +9,9 @@ import { ShopUsps } from '../components/ShopUsps';
 import { Button, ButtonLink, Price, QuantityStepper } from '../components/ui';
 import { useCart } from '../lib/cart';
 import { imageSrcSet, imageUrl } from '../lib/images';
+import { breadcrumbSchema, productSchema } from '../../shared/schema';
 import { usePageMeta, useStructuredData } from '../lib/meta';
+import { useOrigin } from '../lib/ssr';
 import { trackMeta } from '../lib/metaPixel';
 import NotFound from './NotFound';
 
@@ -106,23 +108,9 @@ function ProductDetail({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
 
   usePageMeta(product.name, `${product.tagline} ${formatPrice(product.price)} incl. btw. Verzonden binnen ${SITE.dispatchDays}.`);
-  useStructuredData('product', {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    description: product.description.join(' '),
-    sku: product.sku,
-    ...(product.image ? { image: productPhotos(product).map((ref) => new URL(imageUrl(ref), location.origin).href) } : {}),
-    brand: { '@type': 'Brand', name: SITE.fullName },
-    offers: {
-      '@type': 'Offer',
-      url: location.href,
-      priceCurrency: 'EUR',
-      price: (product.price / 100).toFixed(2),
-      availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      itemCondition: 'https://schema.org/NewCondition',
-    },
-  });
+  const origin = useOrigin();
+  useStructuredData('product', productSchema(origin, product));
+  useStructuredData('breadcrumbs', breadcrumbSchema(origin, [{ name: 'Shop', path: '/shop' }, { name: product.name, path: `/shop/${product.slug}` }]));
 
   const bundle = getBundle();
   const partOfBundle = Boolean(bundle && bundle.id !== product.id && bundle.includes!.some((i) => i.productId === product.id));

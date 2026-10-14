@@ -3,10 +3,15 @@ import { Link } from 'react-router';
 import { SHOP } from '../../shared/content';
 import { SITE } from '../../shared/site';
 import { ButtonLink, Eyebrow } from '../components/ui';
-import { usePageMeta } from '../lib/meta';
+import { breadcrumbSchema, businessSchema } from '../../shared/schema';
+import { usePageMeta, useStructuredData } from '../lib/meta';
+import { useOrigin } from '../lib/ssr';
 
 export default function Contact() {
   usePageMeta('Contact', `Bel of app ${SITE.phone} of mail ${SITE.email}. Op locatie in ${SITE.region} of in onze werkplaats.`);
+  const origin = useOrigin();
+  useStructuredData('business', businessSchema(origin));
+  useStructuredData('breadcrumbs', breadcrumbSchema(origin, [{ name: 'Contact', path: '/contact' }]));
   const hasAddress = Boolean(SITE.address.street);
   const mapsQuery = encodeURIComponent(`${SITE.address.street}, ${SITE.address.postalCode} ${SITE.address.city}`);
 

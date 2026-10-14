@@ -35,8 +35,9 @@ const subscribe = (fn: () => void) => {
 };
 
 export function useLanguage() {
-  const current = useSyncExternalStore(subscribe, () => lang);
-  const canTranslate = useSyncExternalStore(subscribe, () => available);
+  // The server always renders Dutch (third argument).
+  const current = useSyncExternalStore(subscribe, () => lang, () => 'nl' as Lang);
+  const canTranslate = useSyncExternalStore(subscribe, () => available, () => false);
   return { lang: current, available: canTranslate, setLanguage };
 }
 

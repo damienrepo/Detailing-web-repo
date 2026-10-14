@@ -24,7 +24,7 @@ let lastPath: string | undefined;
 let waiting: [string, MetaParams, string | undefined][] = [];
 
 // An ad click's fbclid, kept only in memory until the visitor consents (no storage before that).
-const landing = { fbclid: new URLSearchParams(location.search).get('fbclid'), at: Date.now() };
+const landing = { fbclid: typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('fbclid'), at: Date.now() };
 
 /** The official base code (without the <noscript> image, which would fire without consent). */
 function loadPixel(id: string) {

@@ -9,19 +9,24 @@ import { Eyebrow } from '../components/ui';
 import { api } from '../lib/api';
 import { imageSrcSet, imageUrl } from '../lib/images';
 import { Markdown } from '../lib/markdown';
+import { breadcrumbSchema, postSchema } from '../../shared/schema';
 import { usePageMeta, useStructuredData } from '../lib/meta';
+import { useOrigin, useSsrData } from '../lib/ssr';
 import NotFound from './NotFound';
 
 export default function Blog() {
   usePageMeta('Blog', `Tips, behandelingen en projecten van ${SITE.fullName}.`);
-  const [posts, setPosts] = useState<PostSummary[]>();
+  const preloaded = useSsrData('posts');
+  const [posts, setPosts] = useState<PostSummary[] | undefined>(preloaded);
   const [error, setError] = useState(false);
+  useStructuredData('breadcrumbs', breadcrumbSchema(useOrigin(), [{ name: 'Blog', path: '/blog' }]));
 
   useEffect(() => {
+    if (preloaded) return;
     api<PostSummary[]>('/posts')
       .then((list) => (Array.isArray(list) ? setPosts(list) : setError(true)))
       .catch(() => setError(true));
-  }, []);
+  }, [preloaded]);
 
   return (
     <>
@@ -54,28 +59,22 @@ export default function Blog() {
 
 export function BlogPost() {
   const { slug = '' } = useParams();
-  const [post, setPost] = useState<PublicPost | null>();
+  const preloaded = useSsrData('post');
+  const initial = preloaded?.slug === slug ? preloaded.data : undefined;
+  const [post, setPost] = useState<PublicPost | null | undefined>(initial);
+  const origin = useOrigin();
 
   useEffect(() => {
+    if (initial !== undefined) return;
     setPost(undefined);
     api<PublicPost>(`/posts/${encodeURIComponent(slug)}`)
       .then(setPost)
       .catch(() => setPost(null));
-  }, [slug]);
+  }, [slug, initial]);
 
   usePageMeta(post?.title, post?.excerpt || undefined);
-  useStructuredData(
-    'post',
-    post && {
-      '@context': 'https://schema.org',
-      '@type': 'BlogPosting',
-      headline: post.title,
-      description: post.excerpt,
-      datePublished: post.publishedAt,
-      ...(post.cover ? { image: location.origin + imageUrl(post.cover) } : {}),
-      author: { '@type': 'Organization', name: SITE.fullName },
-    },
-  );
+  useStructuredData('post', post ? postSchema(origin, post) : undefined);
+  useStructuredData('breadcrumbs', post ? breadcrumbSchema(origin, [{ name: 'Blog', path: '/blog' }, { name: post.title, path: `/blog/${post.slug}` }]) : undefined);
 
   if (post === null) return <NotFound />;
 

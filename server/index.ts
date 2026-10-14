@@ -12,6 +12,7 @@ import { createCipher, loadEncryptionKey } from './security';
 import { retryMetaPurchases } from './meta';
 import { importSeed } from './seed';
 import { renderIndex } from './seo';
+import { createRenderer, serverRender } from './ssr';
 import { overridesFromConfig, SettingsStore } from './settings';
 
 const config = loadConfig();
@@ -31,29 +32,47 @@ if (config.production && !config.appUrl.startsWith('https://')) {
 const app = createApp({ config, db, cipher, settings, auth, content, payments });
 const root = path.resolve(import.meta.dirname, '..');
 
-const page = (html: string, pathname: string) =>
-  renderIndex(html, pathname, config.appUrl, { contentJson: content.embed(), findPost: (slug) => getPublishedPost(db, slug) });
+/** The HTML for a page: its title and meta tags, and (for public pages) the server-rendered content. */
+async function page(html: string, req: express.Request, load: ReturnType<typeof createRenderer>) {
+  const out = renderIndex(html, req.path, config.appUrl, { contentJson: content.embed(), findPost: (slug) => getPublishedPost(db, slug) });
+  const rendered = await serverRender(out.html, {
+    url: req.originalUrl,
+    pathname: req.path,
+    origin: config.appUrl,
+    db,
+    content: content.current(),
+    contentKey: content.embed(),
+    load,
+  });
+  return { status: out.status, html: rendered };
+}
 
 if (config.production) {
   const dist = path.join(root, 'dist');
   const indexHtml = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
   app.use('/assets', express.static(path.join(dist, 'assets'), { immutable: true, maxAge: '1y' }));
   app.use(express.static(dist, { index: false, maxAge: '1h' }));
-  app.use((req, res, next) => {
+  const load = createRenderer({ root });
+  app.use(async (req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
-    const out = page(indexHtml, req.path);
-    res.status(out.status).set('Cache-Control', 'no-cache').type('html').send(out.html);
+    try {
+      const out = await page(indexHtml, req, load);
+      res.status(out.status).set('Cache-Control', 'no-cache').type('html').send(out.html);
+    } catch (err) {
+      next(err);
+    }
   });
 } else {
   const { createServer } = await import('vite');
   const vite = await createServer({ root, server: { middlewareMode: true }, appType: 'custom' });
   app.use(vite.middlewares);
+  const load = createRenderer({ root, vite });
   // Same HTML treatment as production, so edited content and page titles also show in development.
   app.use(async (req, res, next) => {
     if (req.method !== 'GET') return next();
     try {
       const html = await vite.transformIndexHtml(req.originalUrl, fs.readFileSync(path.join(root, 'index.html'), 'utf8'));
-      const out = page(html, req.path);
+      const out = await page(html, req, load);
       res.status(out.status).type('html').send(out.html);
     } catch (err) {
       next(err);

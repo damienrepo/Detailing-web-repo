@@ -17,7 +17,9 @@ import { Button, ButtonLink, Eyebrow, Price, TextLink } from '../components/ui';
 import { api } from '../lib/api';
 import { useCart } from '../lib/cart';
 import { imageSrcSet, imageUrl } from '../lib/images';
+import { businessSchema, faqSchema, websiteSchema } from '../../shared/schema';
 import { usePageMeta, useStructuredData } from '../lib/meta';
+import { useOrigin, useSsrData } from '../lib/ssr';
 
 /** Shop questions use the shipping rules, so they are not edited in the admin. */
 function shopFaq() {
@@ -52,23 +54,9 @@ export default function Home() {
   // Section numbers follow the sections that are actually shown.
   let n = 0;
   const idx = () => String(++n).padStart(2, '0');
-  useStructuredData('business', {
-    '@context': 'https://schema.org',
-    '@type': 'AutomotiveBusiness',
-    name: SITE.fullName,
-    description: SITE.description,
-    telephone: SITE.phone,
-    email: SITE.email,
-    url: location.origin,
-    areaServed: SITE.region,
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: SITE.address.street,
-      postalCode: SITE.address.postalCode,
-      addressLocality: SITE.address.city,
-      addressCountry: 'NL',
-    },
-  });
+  const origin = useOrigin();
+  useStructuredData('business', businessSchema(origin));
+  useStructuredData('website', websiteSchema(origin));
 
   return (
     <>
@@ -375,12 +363,14 @@ function Results({ index }: { index: string }) {
 }
 
 function LatestPosts({ index }: { index: string }) {
-  const [posts, setPosts] = useState<PostSummary[]>([]);
+  const preloaded = useSsrData('latestPosts');
+  const [posts, setPosts] = useState<PostSummary[]>(preloaded ?? []);
   useEffect(() => {
+    if (preloaded) return;
     api<PostSummary[]>('/posts?limit=3')
       .then((list) => setPosts(Array.isArray(list) ? list : []))
       .catch(() => setPosts([]));
-  }, []);
+  }, [preloaded]);
   if (posts.length === 0) return null;
   return (
     <section className="bg-ink-2 py-24 text-paper md:py-32">
@@ -406,6 +396,7 @@ function Faq({ index }: { index: string }) {
     { group: 'Diensten', items: HOME.faq },
     { group: 'Shop', items: SHOP.enabled ? shopFaq() : [] },
   ].filter((g) => g.items.length > 0);
+  useStructuredData('faq', faqSchema(groups.flatMap((g) => g.items)));
   return (
     <section id="faq" className="scroll-mt-16 bg-paper py-24 text-ink md:py-32">
       <div className="container-page grid gap-12 md:grid-cols-12">

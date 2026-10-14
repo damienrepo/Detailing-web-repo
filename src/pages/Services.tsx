@@ -5,7 +5,9 @@ import { Reveal } from '../components/Reveal';
 import { ClosingCta, SectionHeading } from '../components/Section';
 import { ServiceCard, serviceImage, serviceSrcSet } from '../components/ServiceCard';
 import { ButtonLink, Eyebrow } from '../components/ui';
+import { breadcrumbSchema, servicesListSchema } from '../../shared/schema';
 import { usePageMeta, useStructuredData } from '../lib/meta';
+import { useOrigin } from '../lib/ssr';
 
 const usps = () => [
   { icon: Sparkles, title: 'Zorgvuldig', text: 'Gedaan door autoliefhebbers die zien wat anderen missen.' },
@@ -19,16 +21,9 @@ export default function Services() {
     'Diensten',
     `Luxe handwas, handwas abonnement, interieurreiniging, technische ruimte, polijsten, glascoating, PPF en schadeherstel in ${SITE.region}.`,
   );
-  useStructuredData('services', {
-    '@context': 'https://schema.org',
-    '@type': 'ItemList',
-    itemListElement: listedServices().map((s, i) => ({
-      '@type': 'ListItem',
-      position: i + 1,
-      url: `${location.origin}/diensten/${s.id}`,
-      name: s.name,
-    })),
-  });
+  const origin = useOrigin();
+  useStructuredData('services', servicesListSchema(origin, listedServices()));
+  useStructuredData('breadcrumbs', breadcrumbSchema(origin, [{ name: 'Diensten', path: '/diensten' }]));
 
   return (
     <>

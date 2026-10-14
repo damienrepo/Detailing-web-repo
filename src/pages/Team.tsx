@@ -7,7 +7,9 @@ import { ClosingCta } from '../components/Section';
 import { Eyebrow } from '../components/ui';
 import { api } from '../lib/api';
 import { imageSrcSet, imageUrl } from '../lib/images';
-import { usePageMeta } from '../lib/meta';
+import { breadcrumbSchema } from '../../shared/schema';
+import { usePageMeta, useStructuredData } from '../lib/meta';
+import { useOrigin, useSsrData } from '../lib/ssr';
 
 const initials = (name: string) =>
   name
@@ -21,14 +23,17 @@ const paragraphs = (text: string) => text.split(/\n\s*\n/).map((p) => p.trim()).
 
 export default function Team() {
   usePageMeta('Ons team', `Maak kennis met de mensen achter ${SITE.fullName}.`);
-  const [team, setTeam] = useState<PublicTeamMember[]>();
+  const preloaded = useSsrData('team');
+  const [team, setTeam] = useState<PublicTeamMember[] | undefined>(preloaded);
   const [error, setError] = useState(false);
+  useStructuredData('breadcrumbs', breadcrumbSchema(useOrigin(), [{ name: 'Ons team', path: '/team' }]));
 
   useEffect(() => {
+    if (preloaded) return;
     api<PublicTeamMember[]>('/team')
       .then(setTeam)
       .catch(() => setError(true));
-  }, []);
+  }, [preloaded]);
 
   return (
     <>

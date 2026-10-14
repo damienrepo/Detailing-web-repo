@@ -9,19 +9,24 @@ import { ClosingCta, SectionHeading } from '../components/Section';
 import { ButtonLink, Eyebrow, TextLink } from '../components/ui';
 import { api } from '../lib/api';
 import { imageSrcSet, imageUrl } from '../lib/images';
-import { usePageMeta } from '../lib/meta';
+import { breadcrumbSchema } from '../../shared/schema';
+import { usePageMeta, useStructuredData } from '../lib/meta';
+import { useOrigin, useSsrData } from '../lib/ssr';
 
 /** "Damiën, Stein & Bram" */
 const joinNames = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} & ${names.at(-1)}` : names[0] ?? '');
 
 export default function About() {
   usePageMeta('Over ons', `Het verhaal achter ${SITE.fullName}: wie we zijn, waarom we het doen en waar we voor staan.`);
-  const [team, setTeam] = useState<PublicTeamMember[]>([]);
+  const preloaded = useSsrData('team');
+  const [team, setTeam] = useState<PublicTeamMember[]>(preloaded ?? []);
+  useStructuredData('breadcrumbs', breadcrumbSchema(useOrigin(), [{ name: 'Over ons', path: '/over-ons' }]));
   useEffect(() => {
+    if (preloaded) return;
     api<PublicTeamMember[]>('/team')
       .then(setTeam)
       .catch(() => setTeam([]));
-  }, []);
+  }, [preloaded]);
   const [first, ...rest] = ABOUT.heroTitle.split('\n');
 
   return (

@@ -4,10 +4,13 @@ import { ProductImage } from '../components/ProductArt';
 import { ShopUsps } from '../components/ShopUsps';
 import { Button, Eyebrow, Price } from '../components/ui';
 import { useCart } from '../lib/cart';
-import { usePageMeta } from '../lib/meta';
+import { breadcrumbSchema } from '../../shared/schema';
+import { usePageMeta, useStructuredData } from '../lib/meta';
+import { useOrigin } from '../lib/ssr';
 
 export default function Shop() {
   usePageMeta('Shop — interieurverzorging', 'Producten voor het onderhoud van je auto, dezelfde die wij dagelijks gebruiken. Verzonden binnen 1–2 werkdagen.');
+  useStructuredData('breadcrumbs', breadcrumbSchema(useOrigin(), [{ name: 'Shop', path: '/shop' }]));
   const kit = getBundle();
   const singles = listedProducts().filter((p) => p.id !== kit?.id);
 

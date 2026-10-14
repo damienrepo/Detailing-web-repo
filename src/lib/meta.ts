@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import { SITE } from '../../shared/site';
+import { SsrContext } from './ssr';
 
 function setMeta(selector: string, attr: 'name' | 'property', key: string, content: string) {
   let el = document.head.querySelector<HTMLMetaElement>(selector);
@@ -32,11 +33,17 @@ export function usePageMeta(title: string | undefined, description: string = SIT
   }, [title, description, options.noindex]);
 }
 
-/** Adds a JSON-LD block for the lifetime of the component. */
+/**
+ * Adds a JSON-LD block for the lifetime of the component. During the server render it is collected and written
+ * into <head>; in the browser it replaces that server copy, so there is never a duplicate.
+ */
 export function useStructuredData(id: string, data: object | undefined) {
+  const ssr = useContext(SsrContext);
+  if (ssr && data) ssr.structuredData[id] = data;
   const json = data ? JSON.stringify(data) : undefined;
   useEffect(() => {
     if (!json) return;
+    document.getElementById(`ld-${id}`)?.remove();
     const script = document.createElement('script');
     script.type = 'application/ld+json';
     script.id = `ld-${id}`;

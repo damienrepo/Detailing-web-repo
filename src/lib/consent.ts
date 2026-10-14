@@ -20,6 +20,7 @@ let stats: Consent | undefined = read(STATS_COOKIE);
 let settingsOpen = false;
 
 function read(name: string): Consent | undefined {
+  if (typeof document === 'undefined') return undefined; // server render
   const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=(granted|denied)`));
   return match?.[1] as Consent | undefined;
 }
@@ -45,9 +46,10 @@ export const statisticsExempt = () => countryFromTimezone(Intl.DateTimeFormat().
 
 /** The visitor's choices, and whether the settings were reopened from the footer. */
 export function useConsent() {
-  const consent = useSyncExternalStore(subscribe, () => current);
-  const statistics = useSyncExternalStore(subscribe, () => stats);
-  const open = useSyncExternalStore(subscribe, () => settingsOpen);
+  // The server render has no choices yet (third argument).
+  const consent = useSyncExternalStore(subscribe, () => current, () => undefined);
+  const statistics = useSyncExternalStore(subscribe, () => stats, () => undefined);
+  const open = useSyncExternalStore(subscribe, () => settingsOpen, () => false);
   return { consent, statistics, settingsOpen: open, showBanner: open || consent === undefined };
 }
 
