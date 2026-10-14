@@ -238,7 +238,34 @@ export function openDb(file: string): Db {
   return db;
 }
 
+/**
+ * Additive tables that are created when missing, whatever the migration number. Branches developed side by side
+ * can each add one here without their numbered migrations colliding when they are merged.
+ */
+const ENSURE: string[] = [
+  // E-mail conversations about booking requests: drafts (written by Claude or a template), sent replies and the
+  // customer's replies pasted in by the admin (see server/conversations.ts).
+  `CREATE TABLE IF NOT EXISTS booking_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    direction TEXT NOT NULL,
+    status TEXT NOT NULL,
+    subject TEXT NOT NULL DEFAULT '',
+    greeting TEXT NOT NULL DEFAULT '',
+    body TEXT NOT NULL DEFAULT '',
+    closing TEXT NOT NULL DEFAULT '',
+    ai INTEGER NOT NULL DEFAULT 0,
+    error TEXT,
+    sent_by TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    sent_at TEXT
+  );
+  CREATE INDEX IF NOT EXISTS booking_messages_booking ON booking_messages(booking_id, id);`,
+];
+
 function migrate(db: Db) {
+  for (const sql of ENSURE) db.exec(sql);
   const version = db.pragma('user_version', { simple: true }) as number;
   for (let i = version; i < MIGRATIONS.length; i++) {
     db.transaction(() => {

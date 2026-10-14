@@ -1,7 +1,17 @@
 import nodemailer from 'nodemailer';
 import type { EffectiveSettings } from './settings';
 
-export type Mail = { to: string; subject: string; text: string; html?: string; replyTo?: string };
+export type Mail = {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+  replyTo?: string;
+  /** Overrides the sender from the settings, e.g. "Detail2Go <contact@detail2go.nl>" for personal replies. */
+  from?: string;
+  /** Blind copy, e.g. to the shop's own mailbox so sent replies are there too. */
+  bcc?: string;
+};
 
 export interface Mailer {
   send(mail: Mail): Promise<void>;
@@ -29,7 +39,7 @@ async function sendViaResend(apiKey: string, from: string | undefined, mail: Mai
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to: [mail.to], subject: mail.subject, text: mail.text, html: mail.html, reply_to: mail.replyTo }),
+    body: JSON.stringify({ from: mail.from ?? from, to: [mail.to], subject: mail.subject, text: mail.text, html: mail.html, reply_to: mail.replyTo, ...(mail.bcc ? { bcc: [mail.bcc] } : {}) }),
     signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) {

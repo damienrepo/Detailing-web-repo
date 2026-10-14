@@ -29,6 +29,8 @@ const ACTIONS: Record<string, string> = {
   translations_cleared: 'Vertalingen gewist',
   redirect_saved: 'Doorverwijzing opgeslagen',
   redirect_deleted: 'Doorverwijzing verwijderd',
+  booking_reply_sent: 'Antwoord op aanvraag verstuurd',
+  booking_deleted: 'Aanvraag verwijderd',
   content_changed: 'Inhoud aangepast',
   content_reset: 'Inhoud teruggezet naar standaard',
   product_created: 'Product toegevoegd',

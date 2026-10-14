@@ -241,6 +241,12 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
   }
   if (path === '/admin/posts' || path === '/admin/media' || path === '/admin/team') return [] as T;
   if (path === '/admin/redirects') return { redirects: [], notFound: [], pages: [] } as T;
+  // A booking's e-mail conversation: shown read-only in the demo (nothing is sent).
+  if ((m = path.match(/^\/admin\/bookings\/(\d+)$/)) && method === 'GET') {
+    const booking = state.bookings.find((b) => b.id === Number(m![1]));
+    if (!booking) throw new ApiError('Deze aanvraag bestaat niet.', 404);
+    return { booking, messages: [], draft: null, ai: false, from: 'Detail2Go <contact@detail2go.nl>' } as T;
+  }
   if (path === '/admin/email') {
     const { EMAIL, EMAIL_KINDS, KIND_INFO, TEMPLATE_INFO } = await import('../../shared/email');
     return {

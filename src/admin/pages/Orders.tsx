@@ -1,4 +1,5 @@
-import { Download, RefreshCw, Search, Store, Truck } from 'lucide-react';
+import { ChevronRight, Download, Loader2, Mail, RefreshCw, Search, Store, Trash2, Truck } from 'lucide-react';
+import { Link } from 'react-router';
 import { useState } from 'react';
 import { formatPrice, SHIPPING } from '../../../shared/pricing';
 import { findService } from '../../../shared/services';
@@ -20,6 +21,8 @@ export type Booking = {
   postal_code: string | null;
   message: string | null;
   created_at: string;
+  /** The e-mail conversation about this request (see BookingConversation). */
+  conversation?: { draft: 'generating' | 'draft' | 'failed' | null; sent: number; awaitingReply: boolean } | null;
 };
 
 export const ORDER_STATUS: Record<OrderStatus, { label: string; tone: 'ok' | 'warn' | 'muted' | 'accent' }> = {
@@ -32,7 +35,7 @@ export const ORDER_STATUS: Record<OrderStatus, { label: string; tone: 'ok' | 'wa
   cancelled: { label: 'Geannuleerd', tone: 'muted' },
 };
 
-const BOOKING_STATUS: Record<Booking['status'], string> = {
+export const BOOKING_STATUS: Record<Booking['status'], string> = {
   new: 'Nieuw',
   confirmed: 'Ingepland',
   done: 'Afgerond',
@@ -296,6 +299,17 @@ export function BookingsPage() {
     }
   }
 
+  async function remove(b: Booking) {
+    if (!confirmAction(`De aanvraag van ${b.name} (${b.vehicle}) verwijderen? Ook de e-mails en concepten in het beheer worden verwijderd. Dit kan niet ongedaan worden gemaakt.`)) return;
+    try {
+      await api(`/admin/bookings/${b.id}`, { method: 'DELETE' });
+      toast('Aanvraag verwijderd');
+      reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Verwijderen is niet gelukt.');
+    }
+  }
+
   const visible = (bookings ?? []).filter((b) => filter === 'all' || b.status === filter);
 
   return (
@@ -327,18 +341,29 @@ export function BookingsPage() {
                     <span className="font-semibold">
                       {findService(b.service_id)?.name ?? b.service_id} — {b.vehicle}
                     </span>
-                    <select
-                      value={b.status}
-                      onChange={(e) => setStatus(b.id, e.target.value as Booking['status'])}
-                      className="border border-paper-3 bg-white px-2 py-1 text-sm"
-                      aria-label="Status"
-                    >
-                      {Object.entries(BOOKING_STATUS).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-1">
+                      <select
+                        value={b.status}
+                        onChange={(e) => setStatus(b.id, e.target.value as Booking['status'])}
+                        className="border border-paper-3 bg-white px-2 py-1 text-sm"
+                        aria-label="Status"
+                      >
+                        {Object.entries(BOOKING_STATUS).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => remove(b)}
+                        className="grid h-8 w-8 place-items-center text-stone-dark hover:text-danger"
+                        aria-label={`Aanvraag van ${b.name} verwijderen`}
+                        title="Aanvraag verwijderen"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className="grid gap-4 px-5 py-4 text-sm md:grid-cols-3">
                     <div>
@@ -366,6 +391,13 @@ export function BookingsPage() {
                     </div>
                     <div>{b.message ? <p className="bg-paper-2 p-2">“{b.message}”</p> : <p className="text-stone-dark">Geen toelichting</p>}</div>
                   </div>
+                  <Link
+                    to={`/admin/afspraken/${b.id}`}
+                    className="flex items-center justify-between gap-3 border-t border-paper-3 px-5 py-3 text-sm font-medium hover:bg-paper/60"
+                  >
+                    <ConversationState c={b.conversation} />
+                    <ChevronRight className="h-4 w-4 text-stone-dark" aria-hidden />
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -374,4 +406,20 @@ export function BookingsPage() {
       )}
     </>
   );
+}
+
+/** What the e-mail conversation about a request needs: write, check a draft, or answer the customer. */
+function ConversationState({ c }: { c: Booking['conversation'] }) {
+  const icon = <Mail className="h-4 w-4" aria-hidden />;
+  if (c?.draft === 'generating')
+    return (
+      <span className="flex items-center gap-2 text-stone-dark">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+        Concept-mail wordt geschreven…
+      </span>
+    );
+  if (c?.awaitingReply && c.draft) return <span className="flex items-center gap-2 text-accent-strong">{icon} Klant heeft gereageerd: concept-antwoord klaar</span>;
+  if (c?.draft) return <span className="flex items-center gap-2 text-accent-strong">{icon} Concept-mail klaar om te versturen</span>;
+  if (c?.sent) return <span className="flex items-center gap-2 text-stone-dark">{icon} Gemaild ({c.sent}×) · gesprek bekijken</span>;
+  return <span className="flex items-center gap-2">{icon} Mail opstellen</span>;
 }

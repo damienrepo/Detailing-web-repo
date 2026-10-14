@@ -235,10 +235,10 @@ export function SettingsPage() {
         </Panel>
 
         <Panel
-          title="Engelse versie (automatisch vertalen)"
+          title="Claude: Engelse versie en concept-mails"
           description={
             <>
-              Met een API-key van Anthropic krijgt de site rechtsboven een <strong>NL / EN</strong>-knop. Alle teksten, ook wat je hier in het beheer schrijft, worden dan automatisch naar het Engels vertaald door Claude. Elke tekst wordt één keer vertaald en bewaard. Maak een key aan in de{' '}
+              Met een API-key van Anthropic krijgt de site rechtsboven een <strong>NL / EN</strong>-knop. Alle teksten, ook wat je hier in het beheer schrijft, worden dan automatisch naar het Engels vertaald door Claude. Elke tekst wordt één keer vertaald en bewaard. Dezelfde key laat Claude bij elke afspraakaanvraag een persoonlijk concept-antwoord schrijven. Maak een key aan in de{' '}
               <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline underline-offset-2">
                 Anthropic Console <ExternalLink className="h-3 w-3" aria-hidden />
               </a>{' '}
