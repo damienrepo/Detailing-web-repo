@@ -64,12 +64,6 @@ export function CookieBanner() {
             Zonder toestemming werkt alles precies hetzelfde.
             {hasPixel && keepStats && ' Anonieme bezoekersstatistieken die alleen wij zien staan aan; die kun je uitzetten bij instellingen.'}
           </p>
-          {settingsOpen && (
-            <p className="mt-2 text-sm text-paper/50">
-              Je huidige keuze: statistieken {statsOn ? 'aan' : 'uit'}
-              {hasPixel && `, marketing ${consent === 'granted' ? 'aan' : 'uit'}`}.
-            </p>
-          )}
           <div className="mt-5 flex flex-col gap-2.5">
             <button type="button" className={accept} onClick={acceptAll}>
               Accepteren
