@@ -559,6 +559,14 @@ export function createApp(deps: AppDeps) {
     res.json(conversationView(bookingFor(req).id));
   });
 
+  // Removes a request (e.g. a test) together with its e-mail conversation (ON DELETE CASCADE).
+  admin.delete('/bookings/:id', (req, res) => {
+    const booking = bookingFor(req);
+    db.prepare('DELETE FROM bookings WHERE id = ?').run(booking.id);
+    audit(req, 'booking_deleted', `${booking.name} (${booking.email})`);
+    res.json({ ok: true });
+  });
+
   admin.post(
     '/bookings/:id/draft',
     rateLimit(30, 10 * 60_000),

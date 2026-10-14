@@ -1,7 +1,7 @@
 import { Eye, Loader2, Mail, RefreshCw, Send, Sparkles, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { findService } from '../../../shared/services';
 import { Button, Input, Notice, Textarea } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -32,6 +32,7 @@ const fieldsOf = (m: Message | null): Fields => ({ subject: m?.subject ?? '', gr
 /** One booking request: what was asked, the e-mails so far, and the reply that is ready to send. */
 export function BookingConversationPage() {
   const { id = '' } = useParams();
+  const navigate = useNavigate();
   const { data, setData, error, reload } = useAdminData<View>(`/admin/bookings/${id}`);
   const save = useSave();
   const [fields, setFields] = useState<Fields>(fieldsOf(null));
@@ -85,6 +86,12 @@ export function BookingConversationPage() {
     run('send', () => api<View>(`/admin/bookings/${id}/send`, { body: fields }), 'E-mail verstuurd');
   };
   const addReply = () => run('reply', () => api<View>(`/admin/bookings/${id}/replies`, { body: { body: reply } }), 'Antwoord toegevoegd, nieuw concept staat klaar').then((v) => v && setReply(''));
+  async function removeBooking() {
+    if (!confirmAction(`De aanvraag van ${data!.booking.name} verwijderen? Ook dit gesprek en het concept worden verwijderd. Dit kan niet ongedaan worden gemaakt.`)) return;
+    const ok = await save.run(() => api(`/admin/bookings/${id}`, { method: 'DELETE' }), 'Aanvraag verwijderd');
+    if (ok) navigate('/admin/afspraken');
+  }
+
   const removeReply = (messageId: number) => {
     if (!confirmAction('Dit antwoord van de klant verwijderen?')) return;
     run('reply', () => api<View>(`/admin/bookings/${id}/replies/${messageId}`, { method: 'DELETE' }));
@@ -247,6 +254,10 @@ export function BookingConversationPage() {
             </dl>
             {booking.message && <p className="whitespace-pre-line bg-paper-2 p-3 text-sm">“{booking.message}”</p>}
           </Panel>
+          <button type="button" onClick={removeBooking} className="inline-flex items-center gap-1.5 text-sm text-stone-dark hover:text-danger">
+            <Trash2 className="h-4 w-4" aria-hidden />
+            Aanvraag verwijderen
+          </button>
         </aside>
       </div>
 

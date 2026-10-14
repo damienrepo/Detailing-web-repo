@@ -1,4 +1,4 @@
-import { ChevronRight, Download, Loader2, Mail, RefreshCw, Search, Store, Truck } from 'lucide-react';
+import { ChevronRight, Download, Loader2, Mail, RefreshCw, Search, Store, Trash2, Truck } from 'lucide-react';
 import { Link } from 'react-router';
 import { useState } from 'react';
 import { formatPrice, SHIPPING } from '../../../shared/pricing';
@@ -299,6 +299,17 @@ export function BookingsPage() {
     }
   }
 
+  async function remove(b: Booking) {
+    if (!confirmAction(`De aanvraag van ${b.name} (${b.vehicle}) verwijderen? Ook de e-mails en concepten in het beheer worden verwijderd. Dit kan niet ongedaan worden gemaakt.`)) return;
+    try {
+      await api(`/admin/bookings/${b.id}`, { method: 'DELETE' });
+      toast('Aanvraag verwijderd');
+      reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Verwijderen is niet gelukt.');
+    }
+  }
+
   const visible = (bookings ?? []).filter((b) => filter === 'all' || b.status === filter);
 
   return (
@@ -330,18 +341,29 @@ export function BookingsPage() {
                     <span className="font-semibold">
                       {findService(b.service_id)?.name ?? b.service_id} — {b.vehicle}
                     </span>
-                    <select
-                      value={b.status}
-                      onChange={(e) => setStatus(b.id, e.target.value as Booking['status'])}
-                      className="border border-paper-3 bg-white px-2 py-1 text-sm"
-                      aria-label="Status"
-                    >
-                      {Object.entries(BOOKING_STATUS).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-1">
+                      <select
+                        value={b.status}
+                        onChange={(e) => setStatus(b.id, e.target.value as Booking['status'])}
+                        className="border border-paper-3 bg-white px-2 py-1 text-sm"
+                        aria-label="Status"
+                      >
+                        {Object.entries(BOOKING_STATUS).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => remove(b)}
+                        className="grid h-8 w-8 place-items-center text-stone-dark hover:text-danger"
+                        aria-label={`Aanvraag van ${b.name} verwijderen`}
+                        title="Aanvraag verwijderen"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className="grid gap-4 px-5 py-4 text-sm md:grid-cols-3">
                     <div>

@@ -128,6 +128,22 @@ describe('replies to booking requests', () => {
   });
 });
 
+describe('deleting a request', () => {
+  it('removes the request and its conversation, for signed-in admins only', async () => {
+    const ctx = setup(SMTP, { replyDrafter: fakeDrafter() });
+    const id = await requestBooking(ctx);
+    await adminClient(request.agent(ctx.app)).delete(`/api/admin/bookings/${id}`).expect(401);
+    const client = await signedIn(ctx);
+    expect(ctx.db.prepare('SELECT COUNT(*) AS n FROM booking_messages WHERE booking_id = ?').get(id)).toEqual({ n: 1 });
+
+    await client.delete(`/api/admin/bookings/${id}`).expect(200);
+    await client.get(`/api/admin/bookings/${id}`).expect(404);
+    expect((await client.get('/api/admin/bookings')).body).toEqual([]);
+    expect(ctx.db.prepare('SELECT COUNT(*) AS n FROM booking_messages').get()).toEqual({ n: 0 });
+    await client.delete(`/api/admin/bookings/${id}`).expect(404);
+  });
+});
+
 describe('the prompt for Claude', () => {
   it('contains the service facts and treats the customer text as content', () => {
     const ctx: DraftContext = {
