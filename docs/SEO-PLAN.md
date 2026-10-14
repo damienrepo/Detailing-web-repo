@@ -39,12 +39,27 @@ Opgesteld op 14 oktober 2026, na een scan van de code en van de live site.
 
 | # | Feature | Wat het doet | Werk | Status | Notities |
 |---|---|---|---|---|---|
-| A1 | **Prerendering** | De server stuurt de volledige pagina-inhoud + structured data als echte HTML mee, zodat alle zoekmachines en AI-crawlers de teksten direct lezen. | Groot | ⬜ | |
-| A2 | **Structured data compleet, server-side** | LocalBusiness/AutomotiveBusiness volledig (openingstijden, geo, werkgebied/plaatsen, socials, logo), plus Service, Product, BreadcrumbList en FAQPage; met tests die de JSON-LD valideren. | Middel | ⬜ | |
-| A3 | **Doorverwijzingen + 404-monitor in het beheer** | Toont welke dode URL's bezoekers en Google opvragen (o.a. oude Wix-adressen); 301-doorverwijzing met één klik. Doorlopend actief. | Middel | ⬜ | |
-| A4 | **Domein rechttrekken** | `detail2go.nl` → 301 naar `https://www.detail2go.nl` (SSL + Site Redirection in DirectAdmin bij Vimexx). | Klein | ⬜ | Handmatige stap in DirectAdmin; DNS staat al goed. |
-| A5 | **Snelheid** | Hero-foto zelf hosten (nu Unsplash), WebP/AVIF, kleinere JS-bundel, LCP-afbeelding preloaden. | Middel | ⬜ | |
-| A6 | **Slimme sitemap** | `lastmod` per pagina, afbeeldingen in de sitemap, IndexNow-ping (Bing e.a.) bij elke inhoudswijziging. | Klein | ⬜ | |
+| A1 | **Prerendering** | De server stuurt de volledige pagina-inhoud + structured data als echte HTML mee, zodat alle zoekmachines en AI-crawlers de teksten direct lezen. | Groot | ✅ | Klaar (14-10-2026). `src/entry-server.tsx` + `server/ssr.ts`; React `prerender`, data (blog, team) vooraf geladen en meegegeven. Beheer/checkout/bestelpagina's alleen in de browser. Bij een fout valt de pagina terug op de oude werking. Homepage: 83 → ±5.600 tekens tekst in de HTML. |
+| A2 | **Structured data compleet, server-side** | LocalBusiness/AutomotiveBusiness volledig (openingstijden, geo, werkgebied/plaatsen, socials, logo), plus Service, Product, BreadcrumbList en FAQPage; met tests die de JSON-LD valideren. | Middel | ✅ | Klaar (14-10-2026). `shared/schema.ts`. Openingstijden worden uit het beheer gelezen. Geen geo-coördinaten (niet verzonnen); wel een Google Maps-link. Werkgebied: stad + Twente. |
+| A3 | **Doorverwijzingen + 404-monitor in het beheer** | Toont welke dode URL's bezoekers en Google opvragen (o.a. oude Wix-adressen); 301-doorverwijzing met één klik. Doorlopend actief. | Middel | ✅ | Klaar (14-10-2026). Beheer → Doorverwijzingen. Vooraf ingesteld: /algemene-voorwaarden, /about-us, /auto-wassen-enschede, /level-1-handwas-exterieur (oude Wix-pagina's die Google nog kent). |
+| A4 | **Domein rechttrekken** | `detail2go.nl` → 301 naar `https://www.detail2go.nl` (SSL + Site Redirection in DirectAdmin bij Vimexx). | Klein | 🟡 | Code klaar: andere domeinen die bij de server uitkomen (zoals het Railway-adres) sturen nu door naar www. **Nog handmatig:** het domein zonder www staat bij Vimexx; zie "Handmatige stap A4" hieronder. |
+| A5 | **Snelheid** | Hero-foto zelf hosten (nu Unsplash), WebP/AVIF, kleinere JS-bundel, LCP-afbeelding preloaden. | Middel | ✅ | Klaar (14-10-2026), aangepast: gzip/brotli-compressie (hoofdbundel 476 → 147 kB, pagina's ±4× kleiner). Hero heeft al `fetchpriority=high` en staat door A1 direct in de HTML. **Bewust niet:** foto's vervangen of omzetten — alle afbeeldingen blijven zoals ingesteld in het beheer. Later mogelijk: WebP bij nieuwe uploads, bundel opsplitsen. |
+| A6 | **Slimme sitemap** | `lastmod` per pagina, afbeeldingen in de sitemap, IndexNow-ping (Bing e.a.) bij elke inhoudswijziging. | Klein | ✅ | Klaar (14-10-2026). `server/sitemap.ts`. Datums komen uit het beheer (geen verzonnen datums). IndexNow alleen op de live (https) site; sleutel op `/<sleutel>.txt`. |
+
+### Handmatige stap A4 (Vimexx / DirectAdmin)
+
+`detail2go.nl` (zonder www) wijst via DNS naar de Vimexx-hosting en bereikt de webshop dus niet. Zo stuur je
+het door:
+
+1. Vimexx → Webhosting Basic → **Direct inloggen** (DirectAdmin).
+2. **SSL-certificaten** → gratis Let's Encrypt-certificaat aanvragen voor `detail2go.nl`.
+3. **Site Redirection** → `/` doorsturen naar `https://www.detail2go.nl/`, type **301**.
+   Of via **Bestandsbeheer** → `public_html/.htaccess` met:
+   ```
+   RewriteEngine On
+   RewriteRule ^(.*)$ https://www.detail2go.nl/$1 [R=301,L]
+   ```
+4. Controleer: `http://detail2go.nl/about-us` en `https://detail2go.nl` moeten allebei op www uitkomen.
 
 ## B. Lokale SEO
 

@@ -240,6 +240,7 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
     } as T;
   }
   if (path === '/admin/posts' || path === '/admin/media' || path === '/admin/team') return [] as T;
+  if (path === '/admin/redirects') return { redirects: [], notFound: [], pages: [] } as T;
   if (path === '/admin/email') {
     const { EMAIL, EMAIL_KINDS, KIND_INFO, TEMPLATE_INFO } = await import('../../shared/email');
     return {

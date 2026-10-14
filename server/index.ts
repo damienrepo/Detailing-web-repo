@@ -12,6 +12,7 @@ import { createCipher, loadEncryptionKey } from './security';
 import { retryMetaPurchases } from './meta';
 import { importSeed } from './seed';
 import { renderIndex } from './seo';
+import { recordNotFound } from './redirects';
 import { createRenderer, serverRender } from './ssr';
 import { overridesFromConfig, SettingsStore } from './settings';
 
@@ -35,6 +36,8 @@ const root = path.resolve(import.meta.dirname, '..');
 /** The HTML for a page: its title and meta tags, and (for public pages) the server-rendered content. */
 async function page(html: string, req: express.Request, load: ReturnType<typeof createRenderer>) {
   const out = renderIndex(html, req.path, config.appUrl, { contentJson: content.embed(), findPost: (slug) => getPublishedPost(db, slug) });
+  // SEO A3: remember pages that were asked for but don't exist, so they can be redirected in the admin.
+  if (out.status === 404 && req.method === 'GET') recordNotFound(db, req.path, req.get('referer'));
   const rendered = await serverRender(out.html, {
     url: req.originalUrl,
     pathname: req.path,

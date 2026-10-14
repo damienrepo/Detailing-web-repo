@@ -206,6 +206,27 @@ const MIGRATIONS: string[] = [
   ALTER TABLE analytics_sessions ADD COLUMN first_channel TEXT;
   ALTER TABLE analytics_sessions ADD COLUMN first_referrer TEXT;
   CREATE INDEX analytics_sessions_vid ON analytics_sessions(vid, started_at);`,
+  // SEO (A3 in docs/SEO-PLAN.md): 301 redirects and a log of requested pages that don't exist. Starts with the
+  // pages of the old Wix site that search engines still list.
+  `CREATE TABLE redirects (
+    from_path TEXT PRIMARY KEY,
+    to_path TEXT NOT NULL,
+    hits INTEGER NOT NULL DEFAULT 0,
+    last_hit_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE not_found (
+    path TEXT PRIMARY KEY,
+    hits INTEGER NOT NULL DEFAULT 1,
+    referrer TEXT,
+    first_seen_at TEXT NOT NULL DEFAULT (datetime('now')),
+    last_seen_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  INSERT INTO redirects (from_path, to_path) VALUES
+    ('/algemene-voorwaarden', '/voorwaarden'),
+    ('/about-us', '/over-ons'),
+    ('/auto-wassen-enschede', '/diensten/luxe-handwas'),
+    ('/level-1-handwas-exterieur', '/diensten/luxe-handwas');`,
 ];
 
 export function openDb(file: string): Db {

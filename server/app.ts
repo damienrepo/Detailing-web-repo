@@ -1,3 +1,4 @@
+import compression from 'compression';
 import express, { type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -49,8 +50,12 @@ import { createCipher, loadEncryptionKey, type Cipher } from './security';
 import { overridesFromConfig, settingsInputSchema, SettingsStore } from './settings';
 import { claudeEngine, LANGS, TRANSLATE_LIMITS, Translator, type TranslateEngine } from './translate';
 import { readCookies, sendMetaPurchase, trackingFromRequest } from './meta';
+import { deleteRedirect, dismissNotFound, findRedirect, listNotFound, listRedirects, normalizePath, redirectProblem, saveRedirect } from './redirects';
+import { IndexNow, indexNowKey, sitemapEntries, sitemapXml } from './sitemap';
 
 export type AppDeps = {
+  /** Fetch used for IndexNow pings (tests). */
+  indexNowFetch?: typeof fetch;
   /** Fetch used for Meta's Conversions API (tests). */
   metaFetch?: typeof fetch;
   /** Fixed translation engine (tests). Defaults to Claude with the API key from the admin settings. */
@@ -136,6 +141,8 @@ export function createApp(deps: AppDeps) {
   const meta = config.meta.pixelId ? ' https://www.facebook.com' : '';
   const metaScript = config.meta.pixelId ? ' https://connect.facebook.net' : '';
   app.set('trust proxy', 1);
+  // SEO A5: gzip/brotli for HTML, JavaScript, CSS and JSON (the main bundle goes from ±475 kB to ±130 kB).
+  app.use(compression());
   app.disable('x-powered-by');
 
   app.use((_req, res, next) => {
@@ -156,6 +163,29 @@ export function createApp(deps: AppDeps) {
     }
     next();
   });
+
+  // SEO A4: one address for the whole site. Other hosts that reach this server (the Railway address) send
+  // visitors and search engines on permanently. The API is left alone: health checks and webhooks use it.
+  const canonicalHost = new URL(config.appUrl).host;
+  // SEO A3: old or moved addresses go to their new page with a 301.
+  app.use((req, res, next) => {
+    if ((req.method !== 'GET' && req.method !== 'HEAD') || req.path.startsWith('/api/')) return next();
+    const query = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+    if (config.production && req.get('host') && req.get('host') !== canonicalHost) {
+      res.redirect(301, config.appUrl + req.originalUrl);
+      return;
+    }
+    const to = findRedirect(db, req.path);
+    if (to) {
+      res.redirect(301, to.startsWith('/') && !to.includes('?') ? to + query : to);
+      return;
+    }
+    next();
+  });
+
+  // SEO A6: changed pages are announced to IndexNow search engines (Bing and others).
+  const indexNow = new IndexNow(db, config.appUrl, deps.indexNowFetch);
+  app.locals.indexNow = indexNow;
 
   const api = express.Router();
   // Larger bodies (blog posts, image uploads) are only parsed for signed-in admins.
@@ -433,6 +463,12 @@ export function createApp(deps: AppDeps) {
     next();
   });
   admin.use(sameOriginOnly);
+  admin.use((req, res, next) => {
+    if (req.method !== 'GET' && /^\/(content|products|services|posts|team|products-order|team-order)(\/|$)/.test(req.path)) {
+      res.on('finish', () => res.statusCode < 400 && indexNow.notify());
+    }
+    next();
+  });
   admin.use(rateLimit(600, 10 * 60_000));
   // Extra per-IP brakes on top of the per-account lockout in Auth.
   admin.use('/setup', rateLimit(10, 15 * 60_000));
@@ -970,6 +1006,42 @@ export function createApp(deps: AppDeps) {
     res.json({ ok: true });
   });
 
+  // SEO A3: redirects and pages that were requested but don't exist.
+
+  const redirectInput = z.object({ from: z.string().trim().min(1).max(300), to: z.string().trim().min(1).max(500) });
+  const redirectsView = () => ({
+    redirects: listRedirects(db),
+    notFound: listNotFound(db),
+    pages: sitemapEntries(db, config.appUrl).map((e) => e.path),
+  });
+
+  admin.get('/redirects', (_req, res) => {
+    res.json(redirectsView());
+  });
+
+  admin.post('/redirects', (req, res) => {
+    const input = parse(redirectInput, req.body);
+    const from = normalizePath(input.from);
+    const to = input.to.startsWith('/') ? normalizePath(input.to) : input.to;
+    const problem = redirectProblem(db, from, to);
+    if (problem) throw new ValidationError({ from: problem });
+    saveRedirect(db, from, to);
+    audit(req, 'redirect_saved', `${from} → ${to}`);
+    res.json(redirectsView());
+  });
+
+  admin.delete('/redirects', (req, res) => {
+    const from = String(req.query.from ?? '');
+    if (!deleteRedirect(db, from)) throw new HttpError(404, 'Deze doorverwijzing bestaat niet.');
+    audit(req, 'redirect_deleted', normalizePath(from));
+    res.json(redirectsView());
+  });
+
+  admin.delete('/not-found', (req, res) => {
+    dismissNotFound(db, String(req.query.path ?? ''));
+    res.json(redirectsView());
+  });
+
   api.use('/admin', admin);
 
   // --- Development payment page -----------------------------------------
@@ -1047,26 +1119,13 @@ export function createApp(deps: AppDeps) {
   });
 
   app.get('/sitemap.xml', (_req, res) => {
-    const paths = [
-      '/',
-      '/diensten',
-      '/over-ons',
-      ...listedServices().map((s) => `/diensten/${s.id}`),
-      ...(SHOP.enabled ? ['/shop', ...listedProducts().map((p) => `/shop/${p.slug}`)] : []),
-      '/blog',
-      ...listPublishedPosts(db).map((p) => `/blog/${p.slug}`),
-      '/team',
-      '/afspraak',
-      '/verzending',
-      '/retourneren',
-      '/voorwaarden',
-      '/privacy',
-      '/contact',
-    ];
-    const urls = paths.map((p) => `  <url><loc>${config.appUrl}${p === '/' ? '/' : p}</loc></url>`).join('\n');
-    res
-      .type('application/xml')
-      .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`);
+    res.type('application/xml').send(sitemapXml(sitemapEntries(db, config.appUrl), config.appUrl));
+  });
+
+  // IndexNow proves the key belongs to this site by serving it at /<key>.txt.
+  app.get(/^\/([a-f0-9]{32})\.txt$/, (req, res, next) => {
+    if (req.params[0] !== indexNowKey(db)) return next();
+    res.type('text/plain').send(indexNowKey(db));
   });
 
   return app;

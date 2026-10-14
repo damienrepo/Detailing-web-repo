@@ -19,6 +19,7 @@ import {
   Users,
   Wrench,
   X,
+  Signpost,
 } from 'lucide-react';
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router';
@@ -41,6 +42,7 @@ import { ProductEditor, ProductsPage } from './pages/Products';
 import { ServiceEditor, ServicesPage } from './pages/Services';
 import { SettingsPage } from './pages/Settings';
 import { SessionPage, StatisticsPage } from './pages/Statistics';
+import { RedirectsPage } from './pages/Redirects';
 import { ShippingPage } from './pages/Shipping';
 import { TeamMemberEditor, TeamPage } from './pages/Team';
 
@@ -256,6 +258,7 @@ const NAV: { group: string; items: { to: string; label: string; icon: typeof Hom
       { to: '/admin/producten', label: 'Producten', icon: Package },
       { to: '/admin/diensten', label: 'Diensten', icon: Wrench },
       { to: '/admin/team', label: 'Team', icon: Users },
+      { to: '/admin/doorverwijzingen', label: 'Doorverwijzingen', icon: Signpost },
       { to: '/admin/homepage', label: 'Homepage', icon: Home },
       { to: '/admin/over-ons', label: 'Over ons', icon: Heart },
       { to: '/admin/bedrijf', label: 'Bedrijfsgegevens', icon: Store },
@@ -360,6 +363,7 @@ function Shell({ user, onLogout, onUserChange }: { user: AdminUser; onLogout: ()
             <Route path="diensten/:id" element={<ServiceEditor />} />
             <Route path="team" element={<TeamPage />} />
             <Route path="team/:id" element={<TeamMemberEditor />} />
+            <Route path="doorverwijzingen" element={<RedirectsPage />} />
             <Route path="homepage" element={<HomePageEditor />} />
             <Route path="over-ons" element={<AboutEditor />} />
             <Route path="bedrijf" element={<BusinessPage />} />
