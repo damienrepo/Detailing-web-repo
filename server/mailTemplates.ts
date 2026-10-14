@@ -20,6 +20,8 @@ export type EmailContent = {
   closing?: string;
   /** Small print at the bottom, e.g. why the recipient gets this mail. */
   note?: string;
+  /** Personal sign-off ("Met vriendelijke groet," + "Damiën\nDetail2Go"); the company's by default. */
+  signature?: { closing: string; name: string };
 };
 
 type Theme = {
@@ -220,7 +222,10 @@ export function renderEmail(content: EmailContent, design: EmailDesign, appUrl: 
               : ''
           }
           <tr><td class="px" style="padding:8px 40px 36px">
-            <p style="margin:0;font-family:${FONT};font-size:15px;line-height:23px;color:${t.text}">Met vriendelijke groet,<br><strong>${esc(SITE.fullName)}</strong></p>
+            <p style="margin:0;font-family:${FONT};font-size:15px;line-height:23px;color:${t.text}">${esc(content.signature?.closing ?? 'Met vriendelijke groet,')}<br>${(content.signature?.name ?? SITE.fullName)
+              .split('\n')
+              .map((line, i) => (i === 0 ? `<strong>${esc(line)}</strong>` : esc(line)))
+              .join('<br>')}</p>
           </td></tr>
         </table>
       </td></tr>
@@ -259,6 +264,6 @@ function renderText(content: EmailContent) {
     }
   }
   if (content.closing) parts.push(content.closing.trim());
-  parts.push(`Met vriendelijke groet,\n${SITE.fullName}\n${SITE.phone} · ${SITE.email}`);
+  parts.push(`${content.signature?.closing ?? 'Met vriendelijke groet,'}\n${content.signature?.name ?? SITE.fullName}\n${SITE.phone} · ${SITE.email}`);
   return parts.filter(Boolean).join('\n\n');
 }

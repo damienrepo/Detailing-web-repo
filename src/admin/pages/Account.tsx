@@ -27,6 +27,7 @@ const ACTIONS: Record<string, string> = {
   setup_failed: 'Onjuiste setupcode gebruikt',
   settings_changed: 'Instellingen gewijzigd',
   translations_cleared: 'Vertalingen gewist',
+  booking_reply_sent: 'Antwoord op aanvraag verstuurd',
   content_changed: 'Inhoud aangepast',
   content_reset: 'Inhoud teruggezet naar standaard',
   product_created: 'Product toegevoegd',

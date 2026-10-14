@@ -1,4 +1,5 @@
-import { Download, RefreshCw, Search, Store, Truck } from 'lucide-react';
+import { ChevronRight, Download, Loader2, Mail, RefreshCw, Search, Store, Truck } from 'lucide-react';
+import { Link } from 'react-router';
 import { useState } from 'react';
 import { formatPrice, SHIPPING } from '../../../shared/pricing';
 import { findService } from '../../../shared/services';
@@ -20,6 +21,8 @@ export type Booking = {
   postal_code: string | null;
   message: string | null;
   created_at: string;
+  /** The e-mail conversation about this request (see BookingConversation). */
+  conversation?: { draft: 'generating' | 'draft' | 'failed' | null; sent: number; awaitingReply: boolean } | null;
 };
 
 export const ORDER_STATUS: Record<OrderStatus, { label: string; tone: 'ok' | 'warn' | 'muted' | 'accent' }> = {
@@ -32,7 +35,7 @@ export const ORDER_STATUS: Record<OrderStatus, { label: string; tone: 'ok' | 'wa
   cancelled: { label: 'Geannuleerd', tone: 'muted' },
 };
 
-const BOOKING_STATUS: Record<Booking['status'], string> = {
+export const BOOKING_STATUS: Record<Booking['status'], string> = {
   new: 'Nieuw',
   confirmed: 'Ingepland',
   done: 'Afgerond',
@@ -366,6 +369,13 @@ export function BookingsPage() {
                     </div>
                     <div>{b.message ? <p className="bg-paper-2 p-2">“{b.message}”</p> : <p className="text-stone-dark">Geen toelichting</p>}</div>
                   </div>
+                  <Link
+                    to={`/admin/afspraken/${b.id}`}
+                    className="flex items-center justify-between gap-3 border-t border-paper-3 px-5 py-3 text-sm font-medium hover:bg-paper/60"
+                  >
+                    <ConversationState c={b.conversation} />
+                    <ChevronRight className="h-4 w-4 text-stone-dark" aria-hidden />
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -374,4 +384,20 @@ export function BookingsPage() {
       )}
     </>
   );
+}
+
+/** What the e-mail conversation about a request needs: write, check a draft, or answer the customer. */
+function ConversationState({ c }: { c: Booking['conversation'] }) {
+  const icon = <Mail className="h-4 w-4" aria-hidden />;
+  if (c?.draft === 'generating')
+    return (
+      <span className="flex items-center gap-2 text-stone-dark">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+        Concept-mail wordt geschreven…
+      </span>
+    );
+  if (c?.awaitingReply && c.draft) return <span className="flex items-center gap-2 text-accent-strong">{icon} Klant heeft gereageerd: concept-antwoord klaar</span>;
+  if (c?.draft) return <span className="flex items-center gap-2 text-accent-strong">{icon} Concept-mail klaar om te versturen</span>;
+  if (c?.sent) return <span className="flex items-center gap-2 text-stone-dark">{icon} Gemaild ({c.sent}×) · gesprek bekijken</span>;
+  return <span className="flex items-center gap-2">{icon} Mail opstellen</span>;
 }

@@ -48,9 +48,13 @@ import { createPaymentResolver, MockProvider, verifyMollieKey, type PaymentProvi
 import { createCipher, loadEncryptionKey, type Cipher } from './security';
 import { overridesFromConfig, settingsInputSchema, SettingsStore } from './settings';
 import { claudeEngine, LANGS, TRANSLATE_LIMITS, Translator, type TranslateEngine } from './translate';
+import { addCustomerReply, conversationSummaries, currentDraft, deleteCustomerReply, getBooking, listMessages, personalMail, saveDraft, sendReply, writeDraft } from './conversations';
+import { claudeDrafter, type ReplyDrafter } from './replyDrafts';
 import { readCookies, sendMetaPurchase, trackingFromRequest } from './meta';
 
 export type AppDeps = {
+  /** Fixed writer for draft replies to booking requests (tests); null for the template only. Defaults to Claude. */
+  replyDrafter?: ReplyDrafter | null;
   /** Fetch used for Meta's Conversions API (tests). */
   metaFetch?: typeof fetch;
   /** Fixed translation engine (tests). Defaults to Claude with the API key from the admin settings. */
@@ -124,6 +128,16 @@ export function createApp(deps: AppDeps) {
   const mailer = deps.mailer ?? createMailer(() => settings.effective());
   const notifyEmail = () => settings.effective().notifyEmail;
   let engineFor: { key: string; engine: TranslateEngine } | undefined;
+  // Draft replies to booking requests: Claude with the same API key as the translations, or the template.
+  let drafterFor: { key: string; drafter: ReplyDrafter } | undefined;
+  const replyDrafter = (): ReplyDrafter | undefined => {
+    if (deps.replyDrafter !== undefined) return deps.replyDrafter ?? undefined;
+    const key = settings.get('anthropicApiKey');
+    if (!key) return undefined;
+    if (drafterFor?.key !== key) drafterFor = { key, drafter: claudeDrafter(key) };
+    return drafterFor.drafter;
+  };
+  const draftJobs = new Set<Promise<unknown>>();
   const translator = new Translator(db, () => {
     if (deps.translateEngine) return deps.translateEngine;
     const key = settings.get('anthropicApiKey');
@@ -133,6 +147,7 @@ export function createApp(deps: AppDeps) {
   });
 
   const app = express();
+  app.locals.draftsIdle = () => Promise.all([...draftJobs]);
   const meta = config.meta.pixelId ? ' https://www.facebook.com' : '';
   const metaScript = config.meta.pixelId ? ' https://connect.facebook.net' : '';
   app.set('trust proxy', 1);
@@ -349,7 +364,7 @@ export function createApp(deps: AppDeps) {
         res.status(400).json({ error: 'Kies een behandeling', fields: { serviceId: 'Kies een behandeling' } });
         return;
       }
-      db.prepare(
+      const { lastInsertRowid } = db.prepare(
         `INSERT INTO bookings (service_id, vehicle, preferred_date, name, email, phone, postal_code, message)
          VALUES (@serviceId, @vehicle, @preferredDate, @name, @email, @phone, @postalCode, @message)`,
       ).run({
@@ -361,6 +376,9 @@ export function createApp(deps: AppDeps) {
       await sendSafely(mailer, bookingReceivedMail(booking, config.appUrl));
       const notify = notifyEmail();
       if (notify) await sendSafely(mailer, bookingNotificationMail(booking, notify, config.appUrl));
+      // A reply is drafted in the background, ready for the admin; the visitor does not wait for it.
+      const job = writeDraft(db, Number(lastInsertRowid), replyDrafter()).finally(() => draftJobs.delete(job));
+      draftJobs.add(job);
       res.status(201).json({ ok: true });
     }),
   );
@@ -511,7 +529,95 @@ export function createApp(deps: AppDeps) {
   });
 
   admin.get('/bookings', (_req, res) => {
-    res.json(db.prepare('SELECT * FROM bookings ORDER BY id DESC LIMIT 200').all());
+    const conversations = conversationSummaries(db);
+    const rows = db.prepare('SELECT * FROM bookings ORDER BY id DESC LIMIT 200').all() as { id: number }[];
+    res.json(rows.map((b) => ({ ...b, conversation: conversations[b.id] ?? null })));
+  });
+
+  // E-mail conversation per booking request: a drafted reply, edited and sent in the house style.
+
+  const replyInput = z.object({
+    subject: z.string().trim().min(1, 'Vul een onderwerp in').max(200, 'Maximaal 200 tekens'),
+    greeting: z.string().trim().max(120, 'Maximaal 120 tekens'),
+    body: z.string().trim().min(1, 'Schrijf een bericht').max(10_000, 'Dit bericht is te lang'),
+    closing: z.string().trim().max(80, 'Maximaal 80 tekens'),
+  });
+  const bookingFor = (req: Request) => {
+    const booking = getBooking(db, Number(req.params.id));
+    if (!booking) throw new HttpError(404, 'Deze aanvraag bestaat niet.');
+    return booking;
+  };
+  const conversationView = (id: number) => ({
+    booking: getBooking(db, id),
+    messages: listMessages(db, id),
+    draft: currentDraft(db, id) ?? null,
+    ai: Boolean(replyDrafter()),
+    from: `${SITE.fullName} <${SITE.email}>`,
+  });
+
+  admin.get('/bookings/:id', (req, res) => {
+    res.json(conversationView(bookingFor(req).id));
+  });
+
+  admin.post(
+    '/bookings/:id/draft',
+    rateLimit(30, 10 * 60_000),
+    asyncRoute(async (req, res) => {
+      const booking = bookingFor(req);
+      const instruction = typeof req.body?.instruction === 'string' ? req.body.instruction.slice(0, 1000) : undefined;
+      await writeDraft(db, booking.id, replyDrafter(), instruction);
+      res.json(conversationView(booking.id));
+    }),
+  );
+
+  admin.put('/bookings/:id/draft', (req, res) => {
+    const booking = bookingFor(req);
+    saveDraft(db, booking.id, parse(replyInput, req.body));
+    res.json(conversationView(booking.id));
+  });
+
+  admin.post('/bookings/:id/preview', (req, res) => {
+    const booking = bookingFor(req);
+    const input = parse(replyInput, req.body);
+    const first = !listMessages(db, booking.id).some((m) => m.direction === 'out' && m.status === 'sent');
+    const mail = personalMail(booking, input, req.admin!.name, config.appUrl, first);
+    res.json({ html: mail.html, from: mail.from, to: mail.to, subject: mail.subject });
+  });
+
+  admin.post(
+    '/bookings/:id/send',
+    rateLimit(30, 10 * 60_000),
+    asyncRoute(async (req, res) => {
+      const booking = bookingFor(req);
+      const input = parse(replyInput, req.body);
+      if (!settings.effective().smtp) throw new HttpError(400, 'Stel eerst de e-mail in onder Betalingen & e-mail, dan kunnen we versturen.');
+      try {
+        await sendReply(db, mailer, booking.id, input, req.admin!.name, config.appUrl);
+      } catch (err) {
+        console.error('[reply]', err);
+        throw new HttpError(502, `Versturen is niet gelukt: ${err instanceof Error ? err.message : 'onbekende fout'}. Het concept is bewaard.`);
+      }
+      audit(req, 'booking_reply_sent', `${booking.name}: ${input.subject}`);
+      res.json(conversationView(booking.id));
+    }),
+  );
+
+  admin.post(
+    '/bookings/:id/replies',
+    rateLimit(30, 10 * 60_000),
+    asyncRoute(async (req, res) => {
+      const booking = bookingFor(req);
+      const body = parse(z.object({ body: z.string().trim().min(1, 'Plak het antwoord van de klant').max(20_000) }), req.body).body;
+      addCustomerReply(db, booking.id, body);
+      await writeDraft(db, booking.id, replyDrafter());
+      res.json(conversationView(booking.id));
+    }),
+  );
+
+  admin.delete('/bookings/:id/replies/:messageId', (req, res) => {
+    const booking = bookingFor(req);
+    if (!deleteCustomerReply(db, booking.id, Number(req.params.messageId))) throw new HttpError(404, 'Dit bericht bestaat niet.');
+    res.json(conversationView(booking.id));
   });
 
   admin.post('/bookings/:id/status', (req, res) => {

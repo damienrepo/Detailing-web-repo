@@ -35,6 +35,7 @@ import { Dashboard } from './pages/Dashboard';
 import { EmailsPage } from './pages/Emails';
 import { HomePageEditor } from './pages/HomePage';
 import { MediaPage } from './pages/Media';
+import { BookingConversationPage } from './pages/BookingConversation';
 import { BookingsPage, OrdersPage } from './pages/Orders';
 import { PostEditor, PostsPage } from './pages/Posts';
 import { ProductEditor, ProductsPage } from './pages/Products';
@@ -352,6 +353,7 @@ function Shell({ user, onLogout, onUserChange }: { user: AdminUser; onLogout: ()
             <Route path="statistieken/bezoek/:id" element={<SessionPage />} />
             <Route path="bestellingen" element={<OrdersPage />} />
             <Route path="afspraken" element={<BookingsPage />} />
+            <Route path="afspraken/:id" element={<BookingConversationPage />} />
             <Route path="blog" element={<PostsPage />} />
             <Route path="blog/:id" element={<PostEditor />} />
             <Route path="producten" element={<ProductsPage />} />
