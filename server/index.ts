@@ -76,7 +76,10 @@ if (config.production) {
     try {
       const html = await vite.transformIndexHtml(req.originalUrl, fs.readFileSync(path.join(root, 'index.html'), 'utf8'));
       const out = await page(html, req, load);
-      res.status(out.status).type('html').send(out.html);
+      // In development Vite adds the CSS from JavaScript, which would show the server-rendered page unstyled
+      // for a moment. A stylesheet link in <head> makes the browser wait for it, as the production build does.
+      const styled = out.html.replace('</head>', '  <link rel="stylesheet" href="/src/index.css?direct" />\n  </head>');
+      res.status(out.status).type('html').send(styled);
     } catch (err) {
       next(err);
     }
