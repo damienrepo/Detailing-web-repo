@@ -1,6 +1,8 @@
-import { useId } from 'react';
-import { getProduct, type ProductId } from '../../shared/catalog';
+import { useId, type ReactNode } from 'react';
+import { Link } from 'react-router';
+import { getProduct, productPhotos, type Product, type ProductId } from '../../shared/catalog';
 import { imageSrcSet, imageUrl } from '../lib/images';
+import { PhotoCarousel } from './PhotoCarousel';
 
 /** Products that have a drawn illustration; others show their photo or a plain placeholder. */
 const ILLUSTRATED = ['interior-cleaner', 'interior-brush', 'microfiber-towel', 'interior-kit'];
@@ -221,6 +223,47 @@ export function ProductImage({ productId, className = '' }: { productId: Product
       className={`relative aspect-square overflow-hidden bg-[radial-gradient(ellipse_at_50%_30%,#f8f7f3_0%,#e7e3db_55%,#d6d1c7_100%)] ${className}`}
     >
       <ProductArt productId={productId} className="absolute inset-0 h-full w-full" />
+    </div>
+  );
+}
+
+/**
+ * Product image for a listing card: with several photos a swipeable carousel through all of them,
+ * otherwise the single photo or illustration. With `href` the image links to the product page.
+ */
+export function ProductGallery({
+  product,
+  href,
+  sizes,
+  className = '',
+  children,
+}: {
+  product: Product;
+  href?: string;
+  sizes: string;
+  className?: string;
+  /** Overlays such as a badge. */
+  children?: ReactNode;
+}) {
+  const photos = productPhotos(product);
+  if (photos.length > 1) {
+    return (
+      <PhotoCarousel images={photos} alt={product.name} sizes={sizes} href={href} tone="light" className={`aspect-square ${className}`}>
+        {children}
+      </PhotoCarousel>
+    );
+  }
+  const image = <ProductImage productId={product.id} />;
+  return (
+    <div className={`relative ${className}`}>
+      {href ? (
+        <Link to={href} className="block" aria-label={product.name}>
+          {image}
+        </Link>
+      ) : (
+        image
+      )}
+      {children}
     </div>
   );
 }

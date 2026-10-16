@@ -9,7 +9,7 @@ import { listedServices } from '../../shared/services';
 import { SITE } from '../../shared/site';
 import { PhotoCarousel } from '../components/PhotoCarousel';
 import { PostCard } from '../components/PostCard';
-import { ProductImage } from '../components/ProductArt';
+import { ProductGallery } from '../components/ProductArt';
 import { Reveal } from '../components/Reveal';
 import { AskUs, ClosingCta, FaqList, SectionHeading } from '../components/Section';
 import { ServiceCard } from '../components/ServiceCard';
@@ -237,9 +237,7 @@ function ShopTeaser({ index }: { index: string }) {
         {kit && (
           <div className="mt-16 grid gap-px bg-paper-3 md:grid-cols-12">
             <Reveal className="bg-paper md:col-span-7">
-              <Link to={`/shop/${kit.slug}`} className="group block">
-                <ProductImage productId={kit.id} className="transition-[filter] duration-500 group-hover:brightness-[1.03]" />
-              </Link>
+              <ProductGallery product={kit} href={`/shop/${kit.slug}`} sizes="(min-width: 768px) 58vw, 100vw" />
             </Reveal>
             <div className="flex flex-col justify-center bg-paper p-8 md:col-span-5 md:p-12">
               {kit.badge && <p className="eyebrow text-accent-strong">{kit.badge}</p>}
@@ -280,20 +278,16 @@ function ShopTeaser({ index }: { index: string }) {
         {singles.length > 0 && (
           <div className={`grid border-l border-paper-3 sm:grid-cols-3 ${kit ? '' : 'mt-16 border-t'}`}>
             {singles.map((p) => (
-              <Link
-                key={p.id}
-                to={`/shop/${p.slug}`}
-                className="group flex items-center border-b border-r border-paper-3 bg-paper sm:flex-col sm:items-stretch"
-              >
-                <ProductImage productId={p.id} className="w-28 shrink-0 sm:w-auto" />
-                <div className="flex flex-1 items-baseline justify-between gap-4 p-5">
+              <div key={p.id} className="flex items-center border-b border-r border-paper-3 bg-paper sm:flex-col sm:items-stretch">
+                <ProductGallery product={p} href={`/shop/${p.slug}`} sizes="(min-width: 640px) 33vw, 112px" className="w-28 shrink-0 sm:w-auto" />
+                <Link to={`/shop/${p.slug}`} className="group flex flex-1 items-baseline justify-between gap-4 p-5">
                   <div>
                     <h3 className="font-medium group-hover:underline">{p.name}</h3>
                     <p className="text-sm text-stone-dark">{p.size}</p>
                   </div>
                   <Price cents={p.price} className="font-medium" />
-                </div>
-              </Link>
+                </Link>
+              </div>
             ))}
           </div>
         )}

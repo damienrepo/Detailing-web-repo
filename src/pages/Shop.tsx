@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { getBundle, listedProducts, type Product } from '../../shared/catalog';
-import { ProductImage } from '../components/ProductArt';
+import { ProductGallery } from '../components/ProductArt';
 import { ShopUsps } from '../components/ShopUsps';
 import { Button, Eyebrow, Price } from '../components/ui';
 import { useCart } from '../lib/cart';
@@ -46,10 +46,9 @@ function ProductCard({ product, featured = false }: { product: Product; featured
   if (featured) {
     return (
       <article className="grid border border-paper-3 bg-paper md:grid-cols-2">
-        <Link to={href} className="relative block" aria-label={product.name}>
-          <ProductImage productId={product.id} />
+        <ProductGallery product={product} href={href} sizes="(min-width: 768px) 50vw, 100vw">
           {product.badge && <span className="eyebrow absolute left-4 top-4 bg-accent-fill px-2.5 py-1.5 text-ink">{product.badge}</span>}
-        </Link>
+        </ProductGallery>
         <div className="flex flex-col justify-center p-6 md:p-12">
           <p className="eyebrow text-stone-dark">Set · {product.size}</p>
           <h2 className="font-display mt-3 text-3xl md:text-4xl">
@@ -79,9 +78,7 @@ function ProductCard({ product, featured = false }: { product: Product; featured
 
   return (
     <article className="group flex flex-col border-b border-r border-paper-3 bg-paper">
-      <Link to={href} className="block" aria-label={product.name}>
-        <ProductImage productId={product.id} />
-      </Link>
+      <ProductGallery product={product} href={href} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" />
       <div className="flex flex-1 flex-col p-5 md:p-6">
         <p className="eyebrow text-stone-dark">
           {product.category} · {product.size}
