@@ -31,6 +31,8 @@ const ACTIONS: Record<string, string> = {
   redirect_deleted: 'Doorverwijzing verwijderd',
   booking_reply_sent: 'Antwoord op aanvraag verstuurd',
   booking_deleted: 'Aanvraag verwijderd',
+  admin_created: 'Beheerder toegevoegd',
+  admin_removed: 'Beheerder verwijderd',
   content_changed: 'Inhoud aangepast',
   content_reset: 'Inhoud teruggezet naar standaard',
   product_created: 'Product toegevoegd',

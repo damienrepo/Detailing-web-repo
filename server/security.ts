@@ -52,6 +52,13 @@ export function passwordProblem(password: string, email?: string): string | unde
 // --- Tokens ----------------------------------------------------------------------
 
 export const randomToken = (bytes = 32) => crypto.randomBytes(bytes).toString('base64url');
+
+/** A temporary password that is easy to type over: 4 groups of 5 characters without look-alikes (~100 bits). */
+export function generatePassword() {
+  const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const chars = Array.from(crypto.randomBytes(20), (b) => alphabet[b % alphabet.length]).join('');
+  return chars.match(/.{5}/g)!.join('-');
+}
 export const sha256 = (value: string) => crypto.createHash('sha256').update(value).digest('base64url');
 
 /** Constant-time string comparison. */

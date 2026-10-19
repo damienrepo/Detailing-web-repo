@@ -3,7 +3,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import QRCode from 'qrcode';
 import { z } from 'zod';
 import type { Db } from './db';
-import { getDummyHash, hashPassword, passwordProblem, randomToken, safeEqual, sha256, verifyPassword, type Cipher } from './security';
+import { generatePassword, getDummyHash, hashPassword, passwordProblem, randomToken, safeEqual, sha256, verifyPassword, type Cipher } from './security';
 import { generateTotpSecret, otpauthUri, verifyTotp } from './totp';
 
 export type AdminUser = { id: number; email: string; name: string; totpEnabled: boolean };
@@ -16,6 +16,7 @@ type UserRow = {
   totp_secret: string | null;
   totp_last_counter: number | null;
   last_login_at: string | null;
+  created_at: string;
 };
 
 declare module 'express-serve-static-core' {
@@ -109,6 +110,21 @@ export class Auth {
 
   audit(userId: number | null, action: string, req?: Request, detail?: string) {
     this.db.prepare('INSERT INTO admin_audit (user_id, action, detail, ip) VALUES (?, ?, ?, ?)').run(userId, action, detail ?? null, req?.ip ?? null);
+  }
+
+  /** All admins, for the Beheerders page. */
+  listUsers() {
+    const rows = this.db.prepare('SELECT * FROM admin_users ORDER BY created_at, id').all() as UserRow[];
+    return rows.map((r) => ({ ...this.toUser(r), lastLoginAt: r.last_login_at, createdAt: r.created_at }));
+  }
+
+  emailTaken(email: string) {
+    return Boolean(this.db.prepare('SELECT 1 FROM admin_users WHERE email = ?').get(email.trim().toLowerCase()));
+  }
+
+  /** Removes an admin; their sessions go with them, their entries in the activity log stay (without a name). */
+  removeUser(id: number) {
+    return this.db.prepare('DELETE FROM admin_users WHERE id = ?').run(id).changes > 0;
   }
 
   async createUser(input: { email: string; name: string; password: string }): Promise<AdminUser> {
@@ -409,6 +425,43 @@ export function createAuthRouter(auth: Auth) {
     await auth.changePassword(req.admin!.id, next);
     auth.revokeAll(req.admin!.id, req.adminToken);
     auth.audit(req.admin!.id, 'password_changed', req);
+    res.json({ ok: true });
+  });
+
+  // Other admins (e.g. a business partner). Adding or removing one asks for your own password again.
+
+  account.get('/admins', (req, res) => {
+    res.json(auth.listUsers().map((u) => ({ ...u, isYou: u.id === req.admin!.id })));
+  });
+
+  account.post('/admins', async (req, res) => {
+    const { name, email, password } = req.body ?? {};
+    if (!(await auth.checkPassword(req.admin!.id, password))) {
+      return res.status(400).json({ error: 'Je wachtwoord klopt niet.', fields: { password: 'Je wachtwoord klopt niet.' } });
+    }
+    const cleanName = typeof name === 'string' ? name.trim() : '';
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!cleanName || cleanName.length > 80) return res.status(400).json({ error: 'Vul een naam in.', fields: { name: 'Vul een naam in.' } });
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cleanEmail) || cleanEmail.length > 200) {
+      return res.status(400).json({ error: 'Vul een geldig e-mailadres in.', fields: { email: 'Vul een geldig e-mailadres in.' } });
+    }
+    if (auth.emailTaken(cleanEmail)) return res.status(400).json({ error: 'Er is al een beheerder met dit e-mailadres.', fields: { email: 'Er is al een beheerder met dit e-mailadres.' } });
+    const temporary = generatePassword();
+    const user = await auth.createUser({ name: cleanName, email: cleanEmail, password: temporary });
+    auth.audit(req.admin!.id, 'admin_created', req, cleanEmail);
+    res.status(201).json({ user, password: temporary });
+  });
+
+  account.post('/admins/:id/remove', async (req, res) => {
+    if (!(await auth.checkPassword(req.admin!.id, req.body?.password))) {
+      return res.status(400).json({ error: 'Je wachtwoord klopt niet.', fields: { password: 'Je wachtwoord klopt niet.' } });
+    }
+    const id = Number(req.params.id);
+    const target = auth.listUsers().find((u) => u.id === id);
+    if (!target) return res.status(404).json({ error: 'Deze beheerder bestaat niet.' });
+    if (id === req.admin!.id) return res.status(400).json({ error: 'Je kunt je eigen account hier niet verwijderen.' });
+    auth.removeUser(id);
+    auth.audit(req.admin!.id, 'admin_removed', req, target.email);
     res.json({ ok: true });
   });
 
