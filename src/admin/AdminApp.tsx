@@ -13,6 +13,7 @@ import {
   Menu,
   Package,
   ShieldCheck,
+  UserCog,
   ShoppingBag,
   Truck,
   Store,
@@ -30,6 +31,7 @@ import { usePageMeta } from '../lib/meta';
 import { hasUnsavedChanges, ToastProvider } from './kit';
 import { AboutEditor } from './pages/AboutPage';
 import { AccountPage } from './pages/Account';
+import { AdminsPage } from './pages/Admins';
 import { BusinessPage } from './pages/Business';
 import { Dashboard } from './pages/Dashboard';
 import { EmailsPage } from './pages/Emails';
@@ -270,6 +272,7 @@ const NAV: { group: string; items: { to: string; label: string; icon: typeof Hom
       { to: '/admin/verzending', label: 'Verzending & afhalen', icon: Truck },
       { to: '/admin/instellingen', label: 'Betalingen & e-mail', icon: CreditCard },
       { to: '/admin/account', label: 'Account & beveiliging', icon: ShieldCheck },
+      { to: '/admin/beheerders', label: 'Beheerders', icon: UserCog },
     ],
   },
 ];
@@ -370,6 +373,7 @@ function Shell({ user, onLogout, onUserChange }: { user: AdminUser; onLogout: ()
             <Route path="verzending" element={<ShippingPage />} />
             <Route path="instellingen" element={<SettingsPage />} />
             <Route path="account" element={<AccountPage user={user} onUserChange={onUserChange} />} />
+            <Route path="beheerders" element={<AdminsPage />} />
             <Route path="*" element={<p className="text-stone-dark">Deze pagina bestaat niet.</p>} />
           </Routes>
         </div>

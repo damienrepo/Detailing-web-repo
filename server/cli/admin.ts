@@ -8,19 +8,14 @@
 import crypto from 'node:crypto';
 import { loadConfig } from '../config';
 import { openDb } from '../db';
-import { hashPassword } from '../security';
+import { generatePassword, hashPassword } from '../security';
 
 const config = loadConfig();
 const db = openDb(config.databasePath);
 const [command, emailArg, nameArg] = process.argv.slice(2);
 const email = emailArg?.trim().toLowerCase();
 
-function randomPassword() {
-  // 4 groups of 5 characters from an unambiguous alphabet: ~100 bits.
-  const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const chars = Array.from(crypto.randomBytes(20), (b) => alphabet[b % alphabet.length]).join('');
-  return chars.match(/.{5}/g)!.join('-');
-}
+const randomPassword = generatePassword;
 
 function findUser() {
   if (!email) fail('Geef een e-mailadres op.');

@@ -219,6 +219,7 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
     demoSignedIn = false;
     return { ok: true } as T;
   }
+  if (path === '/admin/admins') return [{ ...DEMO_USER, lastLoginAt: now(), createdAt: now(), isYou: true }] as T;
   if (path === '/admin/account') return { user: DEMO_USER, sessions: [{ current: true, createdAt: now(), lastSeenAt: now(), ip: null, device: 'Deze browser' }], audit: [] } as T;
   if (path === '/admin/settings') {
     const field = { set: false, fromEnv: false };
