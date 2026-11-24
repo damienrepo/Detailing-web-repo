@@ -49,6 +49,5 @@ Most of it is entered in the admin (`/admin`); shipping rules live in `shared/pr
 
 ## Estadio booking page
 
-- [ ] Add `estadio.detail2go.nl` as a custom domain on the Railway service (same service as the site) and create the CNAME record at the domain registrar
 - [ ] Plan the first wash days in the admin under *Estadio*, and check the packages, prices and texts (especially *Goed om te weten*: key handover and parking)
-- [ ] Make one test booking on the subdomain, then cancel it via the link in the e-mail
+- [ ] Make one test booking on www.detail2go.nl/estadio, then cancel it via the link in the e-mail

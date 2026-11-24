@@ -262,7 +262,7 @@ const ENSURE: string[] = [
     sent_at TEXT
   );
   CREATE INDEX IF NOT EXISTS booking_messages_booking ON booking_messages(booking_id, id);`,
-  // Estadio (estadio.detail2go.nl): the wash days at Estadio Parkweg and the bookings for them; packages and texts
+  // Estadio (www.detail2go.nl/estadio): the wash days at Estadio Parkweg and the bookings for them; packages and texts
   // are JSON in estadio_config (see server/estadio.ts). Times are minutes after midnight, Dutch local time.
   `CREATE TABLE IF NOT EXISTS estadio_days (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

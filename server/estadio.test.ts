@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { freeStarts, localNow, maxOverlap, toUtc, type EstadioPublicInfo } from '../shared/estadio';
+import { defaultEstadioUrl } from './config';
 import { describeVehicle } from './estadio';
 import { setup, signedIn } from './testUtils';
 
@@ -170,7 +171,18 @@ describe('Estadio bookings', () => {
   });
 });
 
-describe('Estadio host', () => {
+describe('Estadio address', () => {
+  it('lives at /estadio on the main site by default, also in production', async () => {
+    const { app, config } = setup({ production: true, appUrl: 'https://www.detail2go.nl', estadioUrl: defaultEstadioUrl('https://www.detail2go.nl') });
+    expect(config.estadioUrl).toBe('https://www.detail2go.nl/estadio');
+    // Not forwarded anywhere: the server hands out the Estadio page itself.
+    const page = await request(app).get('/estadio/boeking/abc').set('Host', 'www.detail2go.nl');
+    expect(page.status).not.toBe(301);
+    expect(page.status).not.toBe(302);
+  });
+});
+
+describe('Estadio on its own host (ESTADIO_URL)', () => {
   const production = { production: true, appUrl: 'https://www.detail2go.nl', estadioUrl: 'https://estadio.detail2go.nl' };
 
   it('sends the admin on the Estadio host to the main site, and /estadio to the subdomain', async () => {

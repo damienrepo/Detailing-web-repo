@@ -1,5 +1,5 @@
-// Estadio: bookings for the monthly wash days at Estadio Parkweg, served on its own subdomain
-// (estadio.detail2go.nl). Shared by the server, the Estadio booking app and the admin.
+// Estadio: bookings for the monthly wash days at Estadio Parkweg, at www.detail2go.nl/estadio.
+// Shared by the server, the Estadio booking app and the admin.
 // --- Packages and settings ------------------------------------------------------------
 
 export type EstadioPackage = {

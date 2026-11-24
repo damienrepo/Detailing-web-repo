@@ -144,13 +144,13 @@ browser can never change what a customer pays.
 Booking requests from `/afspraak` are stored and e-mailed the same way and show
 up in `/admin` under *Afspraken*.
 
-## Estadio (estadio.detail2go.nl)
+## Estadio (www.detail2go.nl/estadio)
 
 A separate booking page for the monthly wash days at Estadio Parkweg, served by
-this same server on its own subdomain. People who work at Estadio pick a package
+this same server at `/estadio`. People who work at Estadio pick a package
 and a time and get a confirmation straight away; there is no request step.
 
-- **Page:** `estadio.html` → `src/estadio/`. In development: http://localhost:3000/estadio
+- **Page:** `estadio.html` → `src/estadio/`. Live: https://www.detail2go.nl/estadio, in development: http://localhost:3000/estadio
 - **Server:** `server/estadio.ts` (API under `/api/estadio`, admin under `/api/admin/estadio`)
 - **Rules and defaults:** `shared/estadio.ts` (packages, texts, time slots), `shared/estadioSchemas.ts` (validation)
 - **Admin:** *Estadio* in the menu. Plan wash days (hours, break, cars at the same
@@ -175,11 +175,10 @@ their own booking page, where they can add it to their calendar and move or canc
 it until a deadline set in the admin (24 hours by default). Two people can never
 book the last spot: availability is checked again inside the database transaction.
 
-**Going live:** add `estadio.detail2go.nl` as a custom domain on the same Railway
-service and point a CNAME at it. The address follows `APP_URL`
-(`https://www.detail2go.nl` → `https://estadio.detail2go.nl`); set `ESTADIO_URL` to
-use another one. The admin itself stays on the main domain, and `/estadio` on the
-main domain forwards to the subdomain.
+**Address:** `APP_URL/estadio`, so nothing extra to set up for going live. The
+page has its own small bundle (`estadio.html`) and is kept out of search results
+(`noindex`). To serve it on a separate host instead, point that host at the same
+Railway service and set `ESTADIO_URL`.
 
 ## Deploy
 

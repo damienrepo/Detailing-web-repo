@@ -1,4 +1,4 @@
-// Estadio: wash days at Estadio Parkweg, booked on estadio.detail2go.nl and managed in the admin (Estadio).
+// Estadio: wash days at Estadio Parkweg, booked on www.detail2go.nl/estadio and managed in the admin (Estadio).
 // The booking page talks to /api/estadio; the admin to /api/admin/estadio. See shared/estadio.ts for the rules.
 import crypto from 'node:crypto';
 import type { Request, RequestHandler, Response, Router } from 'express';

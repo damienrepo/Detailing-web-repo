@@ -1,4 +1,4 @@
-// Admin for the Estadio booking page (estadio.detail2go.nl): wash days, the plan of one day, packages and texts.
+// Admin for the Estadio booking page (www.detail2go.nl/estadio): wash days, the plan of one day, packages and texts.
 import { Building2, CalendarCheck2, CalendarPlus, Copy, FileJson, RefreshCw, Download, ExternalLink, Mail, MapPin, MoveRight, Pencil, Phone, Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, NavLink, Route, Routes, useNavigate, useParams } from 'react-router';

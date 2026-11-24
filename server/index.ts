@@ -33,7 +33,7 @@ if (config.production && !config.appUrl.startsWith('https://')) {
 const app = createApp({ config, db, cipher, settings, auth, content, payments });
 const root = path.resolve(import.meta.dirname, '..');
 
-// The Estadio booking page (estadio.detail2go.nl; /estadio in development) is its own small app: estadio.html.
+// The Estadio booking page (www.detail2go.nl/estadio) is its own small app: estadio.html.
 const estadioUrl = new URL(config.estadioUrl);
 const estadioBase = estadioUrl.pathname.replace(/\/$/, '');
 const estadioOwnHost = estadioUrl.host !== new URL(config.appUrl).host;

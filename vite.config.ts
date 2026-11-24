@@ -10,7 +10,7 @@ export default defineConfig(({ mode, isSsrBuild }) => ({
   build: {
     outDir: mode === 'demo' ? 'dist-demo' : 'dist',
     copyPublicDir: !isSsrBuild,
-    // Two pages: the website (with the admin) and the Estadio booking page on its own subdomain.
+    // Two pages: the website (with the admin) and the Estadio booking page at /estadio.
     ...(mode !== 'demo' && !isSsrBuild
       ? { rollupOptions: { input: { main: path.resolve(__dirname, 'index.html'), estadio: path.resolve(__dirname, 'estadio.html') } } }
       : {}),

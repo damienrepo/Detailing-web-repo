@@ -189,7 +189,7 @@ export function createApp(deps: AppDeps) {
   // SEO A4: one address for the whole site. Other hosts that reach this server (the Railway address) send
   // visitors and search engines on permanently. The API is left alone: health checks and webhooks use it.
   const canonicalHost = new URL(config.appUrl).host;
-  // The Estadio booking page has its own host (estadio.detail2go.nl), served by this same server.
+  // The Estadio booking page lives at /estadio; only when ESTADIO_URL is a separate host (a subdomain) is it served there.
   const estadioUrl = new URL(config.estadioUrl);
   const estadioOwnHost = estadioUrl.host !== canonicalHost;
   // SEO A3: old or moved addresses go to their new page with a 301.
@@ -448,7 +448,7 @@ export function createApp(deps: AppDeps) {
     }),
   );
 
-  // --- Estadio (public): the booking page on estadio.detail2go.nl ------------
+  // --- Estadio (public): the booking page at /estadio -------------------------
 
   estadio.publicRoutes(api);
 

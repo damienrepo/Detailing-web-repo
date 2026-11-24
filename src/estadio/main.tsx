@@ -19,7 +19,7 @@ try {
   // Keep the built-in details.
 }
 
-// estadio.detail2go.nl serves the page at its root; in development it lives under /estadio on the main server.
+// The page lives under /estadio on the main site (or at the root of its own host when ESTADIO_URL is a subdomain).
 const basename = /^\/estadio(\/|$)/.test(location.pathname) ? '/estadio' : '/';
 
 createRoot(document.getElementById('root')!).render(

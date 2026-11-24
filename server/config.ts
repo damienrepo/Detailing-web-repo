@@ -6,7 +6,7 @@ export type Config = {
   port: number;
   production: boolean;
   appUrl: string;
-  /** Public address of the Estadio booking page: its own subdomain in production, /estadio in development. */
+  /** Public address of the Estadio booking page: APP_URL/estadio, unless ESTADIO_URL points elsewhere (e.g. a subdomain). */
   estadioUrl: string;
   databasePath: string;
   /** Folder for uploaded images; defaults to "uploads" next to the database. */
@@ -60,9 +60,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   };
 }
 
-/** https://www.detail2go.nl → https://estadio.detail2go.nl; in development a path on the same server. */
-export function defaultEstadioUrl(appUrl: string, production: boolean) {
-  if (!production) return `${appUrl}/estadio`;
-  const url = new URL(appUrl);
-  return `${url.protocol}//estadio.${url.host.replace(/^www\./, '')}`;
+/** https://www.detail2go.nl → https://www.detail2go.nl/estadio */
+export function defaultEstadioUrl(appUrl: string, _production?: boolean) {
+  return `${appUrl}/estadio`;
 }
