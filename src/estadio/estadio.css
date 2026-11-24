@@ -1,0 +1,34 @@
+/* The Estadio booking page: Detail2Go's styles plus a few of Estadio's own (their Khand wordmark, sand and gold). */
+@import '../index.css';
+@import '@fontsource/khand/latin-600.css';
+
+@theme {
+  --font-estadio: 'Khand', 'Archivo Variable', ui-sans-serif, sans-serif;
+  /* Estadio's brand colours (estadio.nl). */
+  --color-estadio-gold: #ceb86f;
+  --color-estadio-sand: #e9dfc2;
+  /* Dutch number plate. */
+  --color-plate: #f6c800;
+  --color-plate-eu: #003399;
+}
+
+@layer base {
+  body {
+    /* The booking flow sits on paper; dark sections set their own background. */
+    background: var(--color-paper);
+    color: var(--color-ink);
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@utility estadio-mark {
+  font-family: var(--font-estadio);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  line-height: 1;
+}
+
+@utility pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}

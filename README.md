@@ -144,6 +144,43 @@ browser can never change what a customer pays.
 Booking requests from `/afspraak` are stored and e-mailed the same way and show
 up in `/admin` under *Afspraken*.
 
+## Estadio (estadio.detail2go.nl)
+
+A separate booking page for the monthly wash days at Estadio Parkweg, served by
+this same server on its own subdomain. People who work at Estadio pick a package
+and a time and get a confirmation straight away; there is no request step.
+
+- **Page:** `estadio.html` → `src/estadio/`. In development: http://localhost:3000/estadio
+- **Server:** `server/estadio.ts` (API under `/api/estadio`, admin under `/api/admin/estadio`)
+- **Rules and defaults:** `shared/estadio.ts` (packages, texts, time slots), `shared/estadioSchemas.ts` (validation)
+- **Admin:** *Estadio* in the menu. Plan wash days (hours, break, cars at the same
+  time), see the day plan per car with phone and plate, mark cars *Klaar*, move or
+  cancel bookings, add phone bookings, export a day to Excel, and edit packages,
+  prices (excl. btw) and texts.
+
+Typing a Dutch number plate fills in brand, model and colour from the RDW's open
+data (`opendata.rdw.nl`, no key needed). The lookup goes through our server
+(`/api/estadio/voertuig/:plate`, cached for a day), so only the plate is sent to the
+RDW, never the visitor's other details. If the RDW is down, the field stays editable.
+
+**Google Calendar:** under *Estadio → Google Agenda* the admin connects a shared
+Google Calendar through a Google service account (steps are on that screen). Every
+booking then becomes an event (plate, name, package, phone; coloured per package),
+updated when it moves and removed when it is cancelled. Writes happen in the
+background (`server/googleCalendar.ts`, no Google SDK); failures are retried every
+15 minutes and shown in the admin. The key is stored encrypted with `SECRET_KEY`.
+
+Customers get a confirmation, a reminder the day before (from 10:00) and a link to
+their own booking page, where they can add it to their calendar and move or cancel
+it until a deadline set in the admin (24 hours by default). Two people can never
+book the last spot: availability is checked again inside the database transaction.
+
+**Going live:** add `estadio.detail2go.nl` as a custom domain on the same Railway
+service and point a CNAME at it. The address follows `APP_URL`
+(`https://www.detail2go.nl` → `https://estadio.detail2go.nl`); set `ESTADIO_URL` to
+use another one. The admin itself stays on the main domain, and `/estadio` on the
+main domain forwards to the subdomain.
+
 ## Deploy
 
 The app is one Node process that needs **persistent disk** for the SQLite file.

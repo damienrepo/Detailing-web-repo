@@ -6,6 +6,8 @@ export type Config = {
   port: number;
   production: boolean;
   appUrl: string;
+  /** Public address of the Estadio booking page: its own subdomain in production, /estadio in development. */
+  estadioUrl: string;
   databasePath: string;
   /** Folder for uploaded images; defaults to "uploads" next to the database. */
   uploadsDir: string;
@@ -27,10 +29,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const port = Number(env.PORT) || 3000;
   const smtpHost = env.SMTP_HOST?.trim();
   const databasePath = env.DATABASE_PATH?.trim() || 'data/shop.db';
+  const production = env.NODE_ENV === 'production';
+  const appUrl = (env.APP_URL?.trim() || `http://localhost:${port}`).replace(/\/$/, '');
   return {
     port,
-    production: env.NODE_ENV === 'production',
-    appUrl: (env.APP_URL?.trim() || `http://localhost:${port}`).replace(/\/$/, ''),
+    production,
+    appUrl,
+    estadioUrl: (env.ESTADIO_URL?.trim() || defaultEstadioUrl(appUrl, production)).replace(/\/$/, ''),
     databasePath,
     uploadsDir: env.UPLOADS_DIR?.trim() || (databasePath === ':memory:' ? path.join(os.tmpdir(), 'detail2go-test-uploads') : path.join(path.dirname(databasePath), 'uploads')),
     secretKey: env.SECRET_KEY?.trim() || undefined,
@@ -53,4 +58,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     mailFrom: env.MAIL_FROM?.trim() || undefined,
     notifyEmail: env.NOTIFY_EMAIL?.trim() || undefined,
   };
+}
+
+/** https://www.detail2go.nl → https://estadio.detail2go.nl; in development a path on the same server. */
+export function defaultEstadioUrl(appUrl: string, production: boolean) {
+  if (!production) return `${appUrl}/estadio`;
+  const url = new URL(appUrl);
+  return `${url.protocol}//estadio.${url.host.replace(/^www\./, '')}`;
 }

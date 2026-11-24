@@ -1,4 +1,5 @@
 import {
+  Building2,
   CalendarCheck,
   ChartColumn,
   CreditCard,
@@ -36,6 +37,7 @@ import { AdminsPage } from './pages/Admins';
 import { BusinessPage } from './pages/Business';
 import { Dashboard } from './pages/Dashboard';
 import { EmailsPage } from './pages/Emails';
+import { EstadioPage } from './pages/Estadio';
 import { HomePageEditor } from './pages/HomePage';
 import { MediaPage } from './pages/Media';
 import { BookingConversationPage } from './pages/BookingConversation';
@@ -252,6 +254,7 @@ const NAV: { group: string; items: { to: string; label: string; icon: typeof Hom
     items: [
       { to: '/admin/bestellingen', label: 'Bestellingen', icon: ShoppingBag },
       { to: '/admin/afspraken', label: 'Afspraken', icon: CalendarCheck },
+      { to: '/admin/estadio', label: 'Estadio', icon: Building2 },
     ],
   },
   {
@@ -360,6 +363,7 @@ function Shell({ user, onLogout, onUserChange }: { user: AdminUser; onLogout: ()
             <Route path="bestellingen" element={<OrdersPage />} />
             <Route path="afspraken" element={<BookingsPage />} />
             <Route path="afspraken/:id" element={<BookingConversationPage />} />
+            <Route path="estadio/*" element={<EstadioPage />} />
             <Route path="blog" element={<PostsPage />} />
             <Route path="blog/:id" element={<PostEditor />} />
             <Route path="producten" element={<ProductsPage />} />

@@ -33,6 +33,16 @@ if (config.production && !config.appUrl.startsWith('https://')) {
 const app = createApp({ config, db, cipher, settings, auth, content, payments });
 const root = path.resolve(import.meta.dirname, '..');
 
+// The Estadio booking page (estadio.detail2go.nl; /estadio in development) is its own small app: estadio.html.
+const estadioUrl = new URL(config.estadioUrl);
+const estadioBase = estadioUrl.pathname.replace(/\/$/, '');
+const estadioOwnHost = estadioUrl.host !== new URL(config.appUrl).host;
+const isEstadio = (req: express.Request) =>
+  estadioOwnHost ? req.get('host') === estadioUrl.host : req.path === estadioBase || req.path.startsWith(`${estadioBase}/`);
+/** The Estadio page with the company details from the admin embedded, like the main site. */
+const estadioPage = (html: string) =>
+  html.replace('</head>', `  <script type="application/json" id="site-content">${content.embed()}</script>\n  </head>`);
+
 /** The HTML for a page: its title and meta tags, and (for public pages) the server-rendered content. */
 async function page(html: string, req: express.Request, load: ReturnType<typeof createRenderer>) {
   const out = renderIndex(html, req.path, config.appUrl, { contentJson: content.embed(), findPost: (slug) => getPublishedPost(db, slug) });
@@ -53,11 +63,13 @@ async function page(html: string, req: express.Request, load: ReturnType<typeof 
 if (config.production) {
   const dist = path.join(root, 'dist');
   const indexHtml = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
+  const estadioHtml = fs.readFileSync(path.join(dist, 'estadio.html'), 'utf8');
   app.use('/assets', express.static(path.join(dist, 'assets'), { immutable: true, maxAge: '1y' }));
   app.use(express.static(dist, { index: false, maxAge: '1h' }));
   const load = createRenderer({ root });
   app.use(async (req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    if (isEstadio(req)) return void res.set('Cache-Control', 'no-cache').type('html').send(estadioPage(estadioHtml));
     try {
       const out = await page(indexHtml, req, load);
       res.status(out.status).set('Cache-Control', 'no-cache').type('html').send(out.html);
@@ -74,6 +86,11 @@ if (config.production) {
   app.use(async (req, res, next) => {
     if (req.method !== 'GET') return next();
     try {
+      if (isEstadio(req)) {
+        const html = await vite.transformIndexHtml(req.originalUrl, fs.readFileSync(path.join(root, 'estadio.html'), 'utf8'));
+        const styled = html.replace('</head>', '  <link rel="stylesheet" href="/src/estadio/estadio.css?direct" />\n  </head>');
+        return void res.type('html').send(estadioPage(styled));
+      }
       const html = await vite.transformIndexHtml(req.originalUrl, fs.readFileSync(path.join(root, 'index.html'), 'utf8'));
       const out = await page(html, req, load);
       // In development Vite adds the CSS from JavaScript, which would show the server-rendered page unstyled
@@ -93,8 +110,22 @@ if (config.meta.pixelId && config.meta.accessToken) {
   console.warn('[meta] Zet zowel een geldige META_PIXEL_ID als META_CAPI_ACCESS_TOKEN; zonder beide gaan aankopen niet naar de Conversions API.');
 }
 
+// Estadio: reminder mails the day before a wash day (sent from 10:00, each booking once).
+const estadioReminders = () =>
+  void (app.locals.estadioReminders as () => Promise<number>)().catch((err) => console.error('[estadio] herinneringen:', err));
+// Estadio: bookings that did not reach Google Calendar yet (Google down, or just connected) are retried.
+const estadioCalendar = () =>
+  void (app.locals.estadioCalendarSync as () => Promise<void>)().catch((err) => console.error('[estadio] Google Agenda:', err));
+const estadioJobs = () => {
+  estadioReminders();
+  estadioCalendar();
+};
+setTimeout(estadioJobs, 30_000).unref();
+setInterval(estadioJobs, 15 * 60_000).unref();
+
 app.listen(config.port, () => {
   console.log(`[shop] ${config.appUrl} (betalingen: ${payments()?.mode ?? 'uit'})`);
+  console.log(`[shop] Estadio: ${config.estadioUrl}`);
   if (auth.setupCode) {
     console.log(
       [

@@ -9,6 +9,7 @@ import type { AdminUser } from '../AdminApp';
 import { Loading, PageHeader, Panel, useAdminData } from '../kit';
 import { ShopSwitch } from '../ShopSwitch';
 import { Delta } from '../stats/charts';
+import { EstadioNext } from './Estadio';
 import { fmtDuration, fmtNumber, pageName } from '../stats/format';
 import type { Booking } from './Orders';
 import type { SettingsResponse } from './Settings';
@@ -66,6 +67,7 @@ export function Dashboard({ user }: { user: AdminUser }) {
         {stat('/admin/bestellingen', Package, formatPrice(revenue), `omzet webshop deze maand (${thisMonth.length} bestellingen)`)}
       </div>
 
+      <EstadioNext />
       <WebsiteWeek />
 
       <div className="mt-8">

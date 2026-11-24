@@ -7,7 +7,14 @@ export default defineConfig(({ mode, isSsrBuild }) => ({
   // `npm run build:demo` makes a static preview with relative asset paths.
   base: mode === 'demo' ? './' : '/',
   // The server bundle (npm run build) needs no copy of public/; the client build serves it.
-  build: { outDir: mode === 'demo' ? 'dist-demo' : 'dist', copyPublicDir: !isSsrBuild },
+  build: {
+    outDir: mode === 'demo' ? 'dist-demo' : 'dist',
+    copyPublicDir: !isSsrBuild,
+    // Two pages: the website (with the admin) and the Estadio booking page on its own subdomain.
+    ...(mode !== 'demo' && !isSsrBuild
+      ? { rollupOptions: { input: { main: path.resolve(__dirname, 'index.html'), estadio: path.resolve(__dirname, 'estadio.html') } } }
+      : {}),
+  },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

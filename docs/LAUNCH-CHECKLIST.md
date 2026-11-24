@@ -46,3 +46,9 @@ Most of it is entered in the admin (`/admin`); shipping rules live in `shared/pr
 - [ ] SMTP and notification address set in the admin (use *Stuur een testmail*); place a test order and booking
 - [ ] Submit `https://<domain>/sitemap.xml` in Google Search Console
 - [ ] Create a Google Business Profile and link reviews (real reviews only)
+
+## Estadio booking page
+
+- [ ] Add `estadio.detail2go.nl` as a custom domain on the Railway service (same service as the site) and create the CNAME record at the domain registrar
+- [ ] Plan the first wash days in the admin under *Estadio*, and check the packages, prices and texts (especially *Goed om te weten*: key handover and parking)
+- [ ] Make one test booking on the subdomain, then cancel it via the link in the e-mail

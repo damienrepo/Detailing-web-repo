@@ -17,6 +17,7 @@ import { Auth, createAuthRouter, sameOriginOnly } from './auth';
 import { createPost, deletePost, getPost, listAllPosts, listPublishedPosts, getPublishedPost, slugTaken, updatePost } from './blog';
 import type { Config } from './config';
 import { ContentStore } from './content';
+import { createEstadio, EstadioError } from './estadio';
 import type { Db } from './db';
 import {
   bookingNotificationMail,
@@ -56,6 +57,12 @@ import { deleteRedirect, dismissNotFound, findRedirect, listNotFound, listRedire
 import { IndexNow, indexNowKey, sitemapEntries, sitemapXml } from './sitemap';
 
 export type AppDeps = {
+  /** Fixed clock for the Estadio planning (tests). */
+  clock?: () => Date;
+  /** Fetch used for the RDW vehicle lookup on the Estadio page (tests). */
+  rdwFetch?: typeof fetch;
+  /** Fetch used for Google Calendar on the Estadio bookings (tests). */
+  googleFetch?: typeof fetch;
   /** Fetch used for IndexNow pings (tests). */
   indexNowFetch?: typeof fetch;
   /** Fixed writer for draft replies to booking requests (tests); null for the template only. Defaults to Claude. */
@@ -182,10 +189,22 @@ export function createApp(deps: AppDeps) {
   // SEO A4: one address for the whole site. Other hosts that reach this server (the Railway address) send
   // visitors and search engines on permanently. The API is left alone: health checks and webhooks use it.
   const canonicalHost = new URL(config.appUrl).host;
+  // The Estadio booking page has its own host (estadio.detail2go.nl), served by this same server.
+  const estadioUrl = new URL(config.estadioUrl);
+  const estadioOwnHost = estadioUrl.host !== canonicalHost;
   // SEO A3: old or moved addresses go to their new page with a 301.
   app.use((req, res, next) => {
     if ((req.method !== 'GET' && req.method !== 'HEAD') || req.path.startsWith('/api/')) return next();
     const query = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+    if (estadioOwnHost && req.get('host') === estadioUrl.host) {
+      // The admin lives on the main site only (its login cookie is tied to that host).
+      if (/^\/admin(\/|$)/.test(req.path)) return res.redirect(302, `${config.appUrl}/admin/estadio`);
+      return next();
+    }
+    if (estadioOwnHost && /^\/estadio(\/|$)/.test(req.path)) {
+      res.redirect(302, config.estadioUrl + (req.originalUrl.slice('/estadio'.length) || '/'));
+      return;
+    }
     if (config.production && req.get('host') && req.get('host') !== canonicalHost) {
       res.redirect(301, config.appUrl + req.originalUrl);
       return;
@@ -209,6 +228,22 @@ export function createApp(deps: AppDeps) {
   api.use('/admin', (req, res, next) => (signedIn(req) ? express.json({ limit: '300kb' })(req, res, next) : next()));
   api.use(express.json({ limit: '20kb' }));
   api.use(express.urlencoded({ extended: false, limit: '5kb' }));
+
+  const estadio = createEstadio({
+    db,
+    config,
+    mailer,
+    notifyEmail,
+    rateLimit,
+    audit: (req, action, detail) => auth.audit(req.admin?.id ?? null, action, req, detail),
+    clock: deps.clock,
+    fetch: deps.rdwFetch,
+    cipher,
+    googleFetch: deps.googleFetch,
+  });
+  app.locals.estadioReminders = estadio.sendReminders;
+  app.locals.estadioCalendarSync = estadio.syncAll;
+  app.locals.estadioCalendarIdle = estadio.calendarIdle;
 
   const orderUrl = (order: Order) => `${config.appUrl}/bestelling/${order.public_id}`;
   // Mollie cannot reach localhost, so only send a webhook URL for public hosts.
@@ -413,6 +448,10 @@ export function createApp(deps: AppDeps) {
     }),
   );
 
+  // --- Estadio (public): the booking page on estadio.detail2go.nl ------------
+
+  estadio.publicRoutes(api);
+
   // --- Blog (public) -----------------------------------------------------
 
   api.get('/posts', (req, res) => {
@@ -497,6 +536,8 @@ export function createApp(deps: AppDeps) {
   admin.use(authRoutes.account);
 
   const audit = (req: Request, action: string, detail?: string) => auth.audit(req.admin?.id ?? null, action, req, detail);
+
+  estadio.adminRoutes(admin);
 
   admin.get('/orders', (_req, res) => {
     res.json(listOrders(db));
@@ -1197,6 +1238,10 @@ export function createApp(deps: AppDeps) {
       res.status(400).json({ error: err.message, fields: err.fields });
       return;
     }
+    if (err instanceof EstadioError) {
+      res.status(err.status).json({ error: err.message, ...(err.fields ? { fields: err.fields } : {}) });
+      return;
+    }
     if (err instanceof PricingError) {
       res.status(400).json({ error: err.message });
       return;
@@ -1228,6 +1273,11 @@ export function createApp(deps: AppDeps) {
     });
   });
 
+  app.get('/robots.txt', (req, res, next) => {
+    // The Estadio page is for the people working there, not for search engines.
+    if (estadioOwnHost && req.get('host') === estadioUrl.host) return void res.type('text/plain').send('User-agent: *\nDisallow: /\n');
+    next();
+  });
   app.get('/robots.txt', (_req, res) => {
     res.type('text/plain').send(`User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /bestelling/\nDisallow: /afrekenen\n\nSitemap: ${config.appUrl}/sitemap.xml\n`);
   });

@@ -262,6 +262,61 @@ const ENSURE: string[] = [
     sent_at TEXT
   );
   CREATE INDEX IF NOT EXISTS booking_messages_booking ON booking_messages(booking_id, id);`,
+  // Estadio (estadio.detail2go.nl): the wash days at Estadio Parkweg and the bookings for them; packages and texts
+  // are JSON in estadio_config (see server/estadio.ts). Times are minutes after midnight, Dutch local time.
+  `CREATE TABLE IF NOT EXISTS estadio_days (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL UNIQUE,
+    start_min INTEGER NOT NULL,
+    end_min INTEGER NOT NULL,
+    capacity INTEGER NOT NULL DEFAULT 1,
+    interval_min INTEGER NOT NULL DEFAULT 30,
+    break_start_min INTEGER,
+    break_end_min INTEGER,
+    open INTEGER NOT NULL DEFAULT 1,
+    note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS estadio_bookings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    public_id TEXT NOT NULL UNIQUE,
+    day_id INTEGER NOT NULL REFERENCES estadio_days(id) ON DELETE CASCADE,
+    start_min INTEGER NOT NULL,
+    end_min INTEGER NOT NULL,
+    package_id TEXT NOT NULL,
+    package_name TEXT NOT NULL,
+    price INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'booked',
+    name TEXT NOT NULL,
+    email TEXT NOT NULL DEFAULT '',
+    phone TEXT NOT NULL DEFAULT '',
+    company TEXT NOT NULL DEFAULT '',
+    plate TEXT NOT NULL,
+    vehicle TEXT NOT NULL DEFAULT '',
+    parking TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    source TEXT NOT NULL DEFAULT 'online',
+    cancelled_by TEXT,
+    cancelled_at TEXT,
+    reminder_sent_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS estadio_bookings_day ON estadio_bookings(day_id, status);
+  CREATE TABLE IF NOT EXISTS estadio_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );`,
+  // Estadio bookings mirrored in the shared Google Calendar: which event belongs to which booking, the version
+  // that was written (a hash) and the last error, so failed writes are retried.
+  `CREATE TABLE IF NOT EXISTS estadio_calendar_events (
+    booking_id INTEGER PRIMARY KEY REFERENCES estadio_bookings(id) ON DELETE CASCADE,
+    event_id TEXT,
+    hash TEXT,
+    error TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );`,
 ];
 
 function migrate(db: Db) {
