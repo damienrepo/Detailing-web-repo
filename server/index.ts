@@ -41,7 +41,11 @@ const isEstadio = (req: express.Request) =>
   estadioOwnHost ? req.get('host') === estadioUrl.host : req.path === estadioBase || req.path.startsWith(`${estadioBase}/`);
 /** The Estadio page with the company details from the admin embedded, like the main site. */
 const estadioPage = (html: string) =>
-  html.replace('</head>', `  <script type="application/json" id="site-content">${content.embed()}</script>\n  </head>`);
+  html
+    // Link previews (WhatsApp, iMessage) need full addresses for the page and its share image.
+    .replace(/(<meta property="og:url" content=")[^"]*"/, `$1${config.estadioUrl}"`)
+    .replace(/(<meta property="og:image" content=")\//, `$1${config.appUrl}/`)
+    .replace('</head>', `  <script type="application/json" id="site-content">${content.embed()}</script>\n  </head>`);
 
 /** The HTML for a page: its title and meta tags, and (for public pages) the server-rendered content. */
 async function page(html: string, req: express.Request, load: ReturnType<typeof createRenderer>) {
